@@ -955,7 +955,7 @@ private void ClosePreviewImmediately()
         _currentNote.Title = TitleBox.Text;
         _currentNote.Content = ContentBox.Text;
 
-        SaveStatusText.Text = "Savingâ€¦";
+        SaveStatusText.Text = "Saving...";
 
         _saveTimer.Stop();
         _saveTimer.Start();
@@ -1054,14 +1054,57 @@ private void ClosePreviewImmediately()
         _pendingDeleteNote = null;
     }
 
-    private void CloseNoteButton_Click(object sender, RoutedEventArgs e)
+    private async void CloseNoteButton_Click(object sender, RoutedEventArgs e)
     {
         _saveTimer.Stop();
+        DeleteConfirmPopup.IsOpen = false;
+        ClosePreviewImmediately();
 
         OpenDeckList.SelectedItem = null;
         _currentNote = null;
 
-        MoveToFanState();
+        if (OpenNoteCard.RenderTransform is not TranslateTransform transform)
+        {
+            transform = new TranslateTransform();
+            OpenNoteCard.RenderTransform = transform;
+        }
+
+        OpenNoteCard.BeginAnimation(OpacityProperty, null);
+        transform.BeginAnimation(TranslateTransform.XProperty, null);
+
+        var fade = new DoubleAnimation
+        {
+            From = OpenNoteCard.Opacity,
+            To = 0,
+            Duration = TimeSpan.FromMilliseconds(200),
+            EasingFunction = new CubicEase
+            {
+                EasingMode = EasingMode.EaseIn
+            }
+        };
+
+        var slide = new DoubleAnimation
+        {
+            From = transform.X,
+            To = 42,
+            Duration = TimeSpan.FromMilliseconds(260),
+            EasingFunction = new CubicEase
+            {
+                EasingMode = EasingMode.EaseIn
+            }
+        };
+
+        OpenNoteCard.BeginAnimation(OpacityProperty, fade);
+        transform.BeginAnimation(TranslateTransform.XProperty, slide);
+
+        await Task.Delay(260);
+
+        MoveToRestState();
+
+        OpenNoteCard.BeginAnimation(OpacityProperty, null);
+        transform.BeginAnimation(TranslateTransform.XProperty, null);
+        transform.X = 0;
+        OpenNoteCard.Opacity = 1;
     }
 
     private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
@@ -1091,6 +1134,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 

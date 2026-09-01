@@ -91,7 +91,7 @@
               <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <TextBox x:Name="TitleBox" FontSize="18" Foreground="{Binding Color, Converter={StaticResource NoteForegroundConverter}}" FontWeight="DemiBold" Background="Transparent" BorderThickness="0" Padding="0" TextChanged="Editor_TextChanged" />
-            <Button Grid.Column="1" Content="âˆ’" Width="28" Height="28" FontSize="17" Style="{StaticResource RoundButton}" ToolTip="Minimize note" Click="CloseNoteButton_Click">
+            <Button Grid.Column="1" Content="-" Width="28" Height="28" FontSize="17" Style="{StaticResource RoundButton}" ToolTip="Minimize note" Click="CloseNoteButton_Click" Cursor="Hand">
               <Button.Template>
                 <ControlTemplate TargetType="Button">
                   <Border Background="{TemplateBinding Background}" CornerRadius="14">
