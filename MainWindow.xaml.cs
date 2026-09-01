@@ -639,11 +639,9 @@ private void FanNote_MouseEnter(object sender, MouseEventArgs e)
         // Only the selected tab disappears; all other tabs stay closed.
         SetPreviewTabHidden(tab, true);
 
-        UpdateAddButtonPreviewOffset(note);
 
         _previewExitPending = false;
         PreviewPopup.IsOpen = true;
-        UpdatePreviewAddButtonVisibility(note);
 
         await Dispatcher.InvokeAsync(
             () => {
@@ -661,31 +659,16 @@ private void FanNote_MouseEnter(object sender, MouseEventArgs e)
 
     private void UpdateAddButtonPreviewOffset(object note)
     {
-        ResetAddButtonPreviewOffset();
-
-        if (FanNotesList.Items.Count == 0)
-        {
-            return;
-        }
-
-        var lastNote = FanNotesList.Items[FanNotesList.Items.Count - 1];
-
-        if (ReferenceEquals(lastNote, note))
-        {
-            // Popup is taller than a closed tab. Move the existing + just below
-            // its lower edge so it remains visible and clickable.
-            AddButton.RenderTransform = new TranslateTransform(0, 48);
-        }
+        // The + button is permanently fixed below the fan viewport.
+        // Preview opening must never move it.
     }
 
     private void ResetAddButtonPreviewOffset()
     {
-        if (AddButton is null)
+        if (AddButton is not null)
         {
-            return;
+            AddButton.RenderTransform = Transform.Identity;
         }
-
-        AddButton.RenderTransform = Transform.Identity;
     }
     private void SetPreviewTabHidden(FrameworkElement tab, bool hidden)
     {
@@ -707,21 +690,7 @@ private void FanNote_MouseEnter(object sender, MouseEventArgs e)
         tab.Opacity = hidden ? 0 : 1;
         tab.IsHitTestVisible = !hidden;
     }
-        private void UpdatePreviewAddButtonVisibility(object note)
-    {
-        if (FanNotesList.Items.Count == 0)
-        {
-            PreviewAddButton.Visibility = Visibility.Collapsed;
-            return;
-        }
-
-        var lastItem = FanNotesList.Items[FanNotesList.Items.Count - 1];
-
-        PreviewAddButton.Visibility =
-            ReferenceEquals(lastItem, note)
-                ? Visibility.Visible
-                : Visibility.Collapsed;
-    }
+        
 
 private void AnimatePreviewIn()
     {
@@ -832,7 +801,6 @@ private void AnimatePreviewIn()
 
 private void ClosePreviewImmediately()
     {
-        PreviewAddButton.Visibility = Visibility.Collapsed;
         _previewExitPending = false;
         _previewIntentVersion++;
         _previewIntentTab = null;
@@ -1051,6 +1019,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 
