@@ -388,10 +388,42 @@ public partial class MainWindow : Window
         Size targetSize,
         Point offset)
     {
+        double yOffset = 0;
+
+        // The + button lives below the fixed-height fan viewport.
+        // Keep a reserved zone at the bottom of FanDeck so the popup
+        // can never cover the + button.
+        if (PreviewPopup.PlacementTarget is FrameworkElement target &&
+            FanDeck.ActualHeight > 0)
+        {
+            Point targetTop =
+                target.TranslatePoint(new Point(0, 0), FanDeck);
+
+            const double reservedAddArea = 54;
+            const double gapAboveAddButton = 8;
+
+            double addAreaTop =
+                Math.Max(
+                    0,
+                    FanDeck.ActualHeight -
+                    reservedAddArea -
+                    gapAboveAddButton);
+
+            double previewBottom =
+                targetTop.Y + popupSize.Height;
+
+            if (previewBottom > addAreaTop)
+            {
+                yOffset = addAreaTop - previewBottom;
+            }
+        }
+
         return new[]
         {
             new CustomPopupPlacement(
-                new Point(targetSize.Width - popupSize.Width, 0),
+                new Point(
+                    targetSize.Width - popupSize.Width,
+                    yOffset),
                 PopupPrimaryAxis.Horizontal)
         };
     }
@@ -1007,6 +1039,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 
