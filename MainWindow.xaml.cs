@@ -312,17 +312,19 @@ public partial class MainWindow : Window
                 continue;
             }
 
-            // Clear animation clocks left by a previous fan opening.
+            // Remove any leftover animation clocks from previous openings.
             item.BeginAnimation(OpacityProperty, null);
+            item.Opacity = 1;
 
-            if (item.RenderTransform is TranslateTransform oldTransform)
+            if (item.RenderTransform is TranslateTransform previousTransform)
             {
-                oldTransform.BeginAnimation(
+                previousTransform.BeginAnimation(
                     TranslateTransform.XProperty,
                     null);
+                previousTransform.X = 0;
             }
 
-            var p = item.TranslatePoint(
+            Point p = item.TranslatePoint(
                 new Point(0, 0),
                 FanNotesScrollViewer);
 
@@ -333,7 +335,6 @@ public partial class MainWindow : Window
             if (!isVisible)
             {
                 item.RenderTransform = new TranslateTransform(0, 0);
-                item.Opacity = 1;
                 continue;
             }
 
@@ -351,32 +352,25 @@ public partial class MainWindow : Window
         {
             var item = visibleItems[i];
 
-            var transform = new TranslateTransform(18, 0);
-            item.RenderTransform = transform;
-            item.Opacity = 0;
+            // Keep opacity fixed at 1. Only animate position.
+            item.Opacity = 1;
 
-            // Small stagger only among the visible tabs.
-            var delay = TimeSpan.FromMilliseconds(i * 45);
+            var transform = new TranslateTransform(16, 0);
+            item.RenderTransform = transform;
+
+            TimeSpan delay =
+                TimeSpan.FromMilliseconds(i * 40);
 
             var slide = new DoubleAnimation
             {
-                From = 18,
+                From = 16,
                 To = 0,
-                Duration = TimeSpan.FromMilliseconds(360),
+                Duration = TimeSpan.FromMilliseconds(320),
                 BeginTime = delay,
                 EasingFunction = new CubicEase
                 {
                     EasingMode = EasingMode.EaseOut
                 },
-                FillBehavior = FillBehavior.Stop
-            };
-
-            var fade = new DoubleAnimation
-            {
-                From = 0,
-                To = 1,
-                Duration = TimeSpan.FromMilliseconds(260),
-                BeginTime = delay,
                 FillBehavior = FillBehavior.Stop
             };
 
@@ -387,19 +381,12 @@ public partial class MainWindow : Window
                     null);
                 transform.X = 0;
 
-                item.BeginAnimation(
-                    OpacityProperty,
-                    null);
                 item.Opacity = 1;
             };
 
             transform.BeginAnimation(
                 TranslateTransform.XProperty,
                 slide);
-
-            item.BeginAnimation(
-                OpacityProperty,
-                fade);
         }
     }
     private CustomPopupPlacement[] PreviewPopup_CustomPopupPlacement(
@@ -1040,6 +1027,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 
