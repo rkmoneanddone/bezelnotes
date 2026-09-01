@@ -1003,10 +1003,29 @@ private void ClosePreviewImmediately()
 
         var target = _currentNote;
 
+        bool hasUserData =
+            !string.IsNullOrWhiteSpace(target.Content) ||
+            (!string.IsNullOrWhiteSpace(target.Title) &&
+             !string.Equals(target.Title.Trim(), "New Note", StringComparison.OrdinalIgnoreCase));
+
+        if (hasUserData)
+        {
+            var answer = MessageBox.Show(
+                "This note contains content. Delete it?",
+                "Delete note?",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+
+            if (answer != MessageBoxResult.Yes)
+            {
+                return;
+            }
+        }
+
         _saveTimer.Stop();
 
         await App.NoteStore.DeleteNoteAsync(target.Id);
-
         _notes.Remove(target);
 
         _currentNote = null;
@@ -1052,6 +1071,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 
