@@ -235,11 +235,8 @@ public partial class MainWindow : Window
 
         if (!initial)
         {
-            RestPill.BeginAnimation(
-                OpacityProperty,
-                new DoubleAnimation(0.65, 1, TimeSpan.FromMilliseconds(90))
-            );
-        }
+        // Disabled: the + button must remain fixed while previews open/close.
+    }
     }
 
     private void MoveToFanState()
@@ -649,7 +646,9 @@ private void FanNote_MouseEnter(object sender, MouseEventArgs e)
         UpdatePreviewAddButtonVisibility(note);
 
         await Dispatcher.InvokeAsync(
-            () => { },
+            () => {
+        // Disabled: the + button must remain fixed while previews open/close.
+    },
             DispatcherPriority.Loaded);
 
         if (intentVersion != _previewIntentVersion)
@@ -1052,6 +1051,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 
