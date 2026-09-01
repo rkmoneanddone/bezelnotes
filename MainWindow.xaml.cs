@@ -83,7 +83,7 @@ public partial class MainWindow : Window
 
         var notes = await App.NoteStore.GetNotesAsync();
 
-        foreach (var note in notes.Take(8))
+        foreach (var note in notes)
         {
             _notes.Add(note);
         }
@@ -1027,6 +1027,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 
