@@ -18,6 +18,7 @@
 
     <Window.Resources>
         <services:NoteColorConverter x:Key="NoteColorConverter"/>
+        <services:NoteForegroundConverter x:Key="NoteForegroundConverter"/>
 
         <Style x:Key="RoundButton" TargetType="Button">
             <Setter Property="BorderThickness" Value="0"/>
@@ -119,7 +120,7 @@
                                         <TextBlock Text="{Binding Title}"
                                                    FontSize="13.5"
                                                    FontWeight="DemiBold"
-                                                   Foreground="#565656"
+                                                   Foreground="{Binding Color, Converter={StaticResource NoteForegroundConverter}}"
                                                    HorizontalAlignment="Center"
                                                    VerticalAlignment="Center"
                                                    TextAlignment="Center"
@@ -211,6 +212,7 @@
 
                         <TextBox x:Name="TitleBox"
                                  FontSize="18"
+                                 Foreground="{Binding Color, Converter={StaticResource NoteForegroundConverter}}"
                                  FontWeight="DemiBold"
                                  Background="Transparent"
                                  BorderThickness="0"
@@ -254,57 +256,48 @@
                              Background="Transparent"
                              BorderThickness="0"
                              FontSize="15"
+                             Foreground="{Binding Color, Converter={StaticResource NoteForegroundConverter}}"
                              TextChanged="Editor_TextChanged"/>
 
-                    <Grid Grid.Row="3">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+                                        <Grid Grid.Row="3" Margin="0,2,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
 
-                        <StackPanel Orientation="Horizontal">
-                            <Button Width="20" Height="20" Margin="0,0,6,0"
-                                    Background="#FFDD69" BorderThickness="0"
-                                    Tag="Yellow" Cursor="Hand" Click="ColorButton_Click"/>
-                            <Button Width="20" Height="20" Margin="0,0,6,0"
-                                    Background="#AEE5D1" BorderThickness="0"
-                                    Tag="Mint" Cursor="Hand" Click="ColorButton_Click"/>
-                            <Button Width="20" Height="20" Margin="0,0,6,0"
-                                    Background="#B7DCF4" BorderThickness="0"
-                                    Tag="Blue" Cursor="Hand" Click="ColorButton_Click"/>
-                            <Button Width="20" Height="20" Margin="0,0,6,0"
-                                    Background="#D6C1F6" BorderThickness="0"
-                                    Tag="Purple" Cursor="Hand" Click="ColorButton_Click"/>
-                            <Button Width="20" Height="20" Margin="0,0,6,0"
-                                    Background="#F8C2CF" BorderThickness="0"
-                                    Tag="Pink" Cursor="Hand" Click="ColorButton_Click"/>
-                            <Button Width="20" Height="20" Margin="0,0,6,0"
-                                    Background="#FFD0A6" BorderThickness="0"
-                                    Tag="Peach" Cursor="Hand" Click="ColorButton_Click"/>
-                            <Button Width="20" Height="20" Margin="0,0,6,0"
-                                    Background="#CDE8A9" BorderThickness="0"
-                                    Tag="Green" Cursor="Hand" Click="ColorButton_Click"/>
-                            <Button Width="20" Height="20"
-                                    Background="#D8DDE4" BorderThickness="0"
-                                    Tag="Gray" Cursor="Hand" Click="ColorButton_Click"/>
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
+                            <Button Width="20" Height="20" Margin="0,0,6,0" Background="#FFDD69" BorderThickness="0" Tag="Yellow" Cursor="Hand" Click="ColorButton_Click"/>
+                            <Button Width="20" Height="20" Margin="0,0,6,0" Background="#AEE5D1" BorderThickness="0" Tag="Mint" Cursor="Hand" Click="ColorButton_Click"/>
+                            <Button Width="20" Height="20" Margin="0,0,6,0" Background="#B7DCF4" BorderThickness="0" Tag="Blue" Cursor="Hand" Click="ColorButton_Click"/>
+                            <Button Width="20" Height="20" Margin="0,0,6,0" Background="#D6C1F6" BorderThickness="0" Tag="Purple" Cursor="Hand" Click="ColorButton_Click"/>
+                            <Button Width="20" Height="20" Margin="0,0,6,0" Background="#F8C2CF" BorderThickness="0" Tag="Pink" Cursor="Hand" Click="ColorButton_Click"/>
+                            <Button Width="20" Height="20" Margin="0,0,6,0" Background="#586174" BorderThickness="0" Tag="Slate" Cursor="Hand" Click="ColorButton_Click"/>
+                            <Button Width="20" Height="20" Background="#466B57" BorderThickness="0" Tag="Forest" Cursor="Hand" Click="ColorButton_Click"/>
                         </StackPanel>
 
-                        <TextBlock x:Name="SaveStatusText"
-                                   Grid.Column="1"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   FontSize="13.5"
-                                   Foreground="#696969"/>
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
 
-                        <Button Grid.Column="2"
-                                Content="Delete"
-                                Padding="10,4"
-                                BorderThickness="0"
-                                Background="#16FFFFFF"
-                                Foreground="#7A4B4B"
-                                Cursor="Hand"
-                                Click="DeleteButton_Click"/>
+                            <TextBlock x:Name="SaveStatusText"
+                                       Grid.Column="0"
+                                       HorizontalAlignment="Left"
+                                       VerticalAlignment="Center"
+                                       FontSize="13.5"
+                                       Foreground="{Binding Color, Converter={StaticResource NoteForegroundConverter}}"/>
+
+                            <Button Grid.Column="1"
+                                    Content="Delete"
+                                    Padding="10,4"
+                                    BorderThickness="0"
+                                    Background="#16FFFFFF"
+                                    Foreground="#7A4B4B"
+                                    Cursor="Hand"
+                                    Click="DeleteButton_Click"/>
+                        </Grid>
                     </Grid>
                 </Grid>
             </Border>
@@ -348,7 +341,7 @@
                                 <TextBlock Text="{Binding Title}"
                                            FontSize="13.5"
                                            FontWeight="DemiBold"
-                                           Foreground="#4A4A4A"
+                                           Foreground="{Binding Color, Converter={StaticResource NoteForegroundConverter}}"
                                            VerticalAlignment="Center"
                                            HorizontalAlignment="Center"
                                            TextAlignment="Center"
@@ -361,6 +354,32 @@
                 </ListBox>
             </Border>
         </Grid>
+    <Popup x:Name="DeleteConfirmPopup"
+           Placement="Center"
+           PlacementTarget="{Binding ElementName=OpenNoteCard}"
+           AllowsTransparency="True"
+           StaysOpen="True"
+           PopupAnimation="Fade">
+        <Border Width="250"
+                Padding="18"
+                CornerRadius="14"
+                Background="#F7F7F8"
+                BorderBrush="#33000000"
+                BorderThickness="1">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="18" ShadowDepth="4" Opacity="0.25"/>
+            </Border.Effect>
+            <StackPanel>
+                <TextBlock Text="Delete this note?" FontSize="16" FontWeight="SemiBold" Foreground="#333333"/>
+                <TextBlock Text="This note contains content. This cannot be undone." Margin="0,8,0,16" FontSize="13.5" TextWrapping="Wrap" Foreground="#666666"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="Cancel" Width="76" Height="32" Margin="0,0,8,0" Cursor="Hand" Style="{StaticResource RoundButton}" Click="DeleteConfirmCancel_Click"/>
+                    <Button Content="Delete" Width="76" Height="32" Cursor="Hand" Background="#F5DADB" Foreground="#8A4040" Style="{StaticResource RoundButton}" Click="DeleteConfirmYes_Click"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Popup>
+
     <!-- POINT 3: read-only hover preview attached to the hovered fan tab -->
     <Popup x:Name="PreviewPopup"
            Placement="Custom"
@@ -405,7 +424,7 @@
                FontSize="17"
                FontWeight="SemiBold"
                FontFamily="Segoe UI"
-               Foreground="#505050"
+               Foreground="{Binding Color, Converter={StaticResource NoteForegroundConverter}}"
                HorizontalAlignment="Center"
                VerticalAlignment="Center"
                TextAlignment="Center"
@@ -430,14 +449,14 @@
                                Text="{Binding Title}"
                                FontSize="15"
                                FontWeight="SemiBold"
-                               Foreground="#333333"
+                               Foreground="{Binding Color, Converter={StaticResource NoteForegroundConverter}}"
                                TextTrimming="CharacterEllipsis"/>
 
                     <TextBlock Grid.Row="2"
                                Text="{Binding Content}"
                                FontSize="14"
                                FontWeight="Normal"
-                               Foreground="#444444"
+                               Foreground="{Binding Color, Converter={StaticResource NoteForegroundConverter}}"
                                TextWrapping="Wrap"
                                TextTrimming="CharacterEllipsis"
                                LineHeight="21"
@@ -449,6 +468,7 @@
         </Grid>    </Popup>
 </Grid>
 </Window>
+
 
 
 

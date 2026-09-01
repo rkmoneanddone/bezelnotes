@@ -19,7 +19,29 @@ public sealed class NoteColorConverter : IValueConverter
             "peach"  => new SolidColorBrush(Color.FromRgb(255, 208, 166)),
             "green"  => new SolidColorBrush(Color.FromRgb(205, 232, 169)),
             "gray"   => new SolidColorBrush(Color.FromRgb(216, 221, 228)),
+            "slate"  => new SolidColorBrush(Color.FromRgb(88, 97, 116)),
+            "forest" => new SolidColorBrush(Color.FromRgb(70, 107, 87)),
             _        => new SolidColorBrush(Color.FromRgb(255, 221, 105)),
+        };
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
+
+
+public sealed class NoteForegroundConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        var color = value?.ToString()?.ToLowerInvariant();
+
+        return color switch
+        {
+            "slate"  => new SolidColorBrush(Colors.White),
+            "forest" => new SolidColorBrush(Colors.White),
+            _        => new SolidColorBrush(Color.FromRgb(70, 70, 70)),
         };
     }
 

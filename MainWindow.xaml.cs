@@ -28,6 +28,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _fanHoverTimer;
 
     private Note? _currentNote;
+    private Note? _pendingDeleteNote;
     private bool _loadingEditor;
     private DeckState _state = DeckState.Rest;
     private bool _fanTransitionInProgress;
@@ -863,6 +864,8 @@ private void ClosePreviewImmediately()
     }
     private void MoveToOpenState(Note note)
     {
+        ClosePreviewImmediately();
+        DeleteConfirmPopup.IsOpen = false;
         _collapseTimer.Stop();
         _saveTimer.Stop();
 
@@ -1010,19 +1013,19 @@ private void ClosePreviewImmediately()
 
         if (hasUserData)
         {
-            var answer = MessageBox.Show(
-                "This note contains content. Delete it?",
-                "Delete note?",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning,
-                MessageBoxResult.No);
-
-            if (answer != MessageBoxResult.Yes)
-            {
-                return;
-            }
+            _pendingDeleteNote = target;
+            DeleteConfirmPopup.PlacementTarget = OpenNoteCard;
+            DeleteConfirmPopup.IsOpen = true;
+            return;
         }
 
+        await DeleteNoteNowAsync(target);
+    }
+
+    private async Task DeleteNoteNowAsync(Note target)
+    {
+        DeleteConfirmPopup.IsOpen = false;
+        _pendingDeleteNote = null;
         _saveTimer.Stop();
 
         await App.NoteStore.DeleteNoteAsync(target.Id);
@@ -1032,6 +1035,23 @@ private void ClosePreviewImmediately()
         OpenDeckList.SelectedItem = null;
 
         MoveToFanState();
+    }
+
+    private async void DeleteConfirmYes_Click(object sender, RoutedEventArgs e)
+    {
+        if (_pendingDeleteNote is not Note target)
+        {
+            DeleteConfirmPopup.IsOpen = false;
+            return;
+        }
+
+        await DeleteNoteNowAsync(target);
+    }
+
+    private void DeleteConfirmCancel_Click(object sender, RoutedEventArgs e)
+    {
+        DeleteConfirmPopup.IsOpen = false;
+        _pendingDeleteNote = null;
     }
 
     private void CloseNoteButton_Click(object sender, RoutedEventArgs e)
@@ -1071,6 +1091,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 
