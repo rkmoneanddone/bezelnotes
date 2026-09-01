@@ -88,7 +88,8 @@
               HorizontalScrollBarVisibility="Disabled"
               CanContentScroll="False"
               PanningMode="VerticalOnly"
-              Focusable="False">
+              Focusable="False"
+              PreviewMouseWheel="FanNotesScrollViewer_PreviewMouseWheel">
     <ItemsControl x:Name="FanNotesList"
                       HorizontalAlignment="Right"
                                   Width="46">
@@ -446,6 +447,7 @@
         </Grid>    </Popup>
 </Grid>
 </Window>
+
 
 
 

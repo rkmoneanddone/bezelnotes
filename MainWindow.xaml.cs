@@ -12,6 +12,9 @@ namespace StickyNotes;
 
 public partial class MainWindow : Window
 {
+    private bool _fanScrollActive;
+    private int _fanScrollVersion;
+
     private enum DeckState
     {
         Rest,
@@ -392,8 +395,85 @@ public partial class MainWindow : Window
                 PopupPrimaryAxis.Horizontal)
         };
     }
-    private void FanNote_MouseEnter(object sender, MouseEventArgs e)
+        private void FanNotesScrollViewer_PreviewMouseWheel(
+        object sender,
+        MouseWheelEventArgs e)
     {
+        _fanScrollActive = true;
+        int version = ++_fanScrollVersion;
+
+        // Cancel any hover intent that started before/during this wheel step.
+        _previewIntentVersion++;
+
+        // A preview should never stay open while the note stack is moving.
+        if (PreviewPopup.IsOpen)
+        {
+            ClosePreviewImmediately();
+        }
+
+        _ = ResumePreviewAfterFanScrollAsync(version);
+    }
+
+    private async Task ResumePreviewAfterFanScrollAsync(int version)
+    {
+        // Debounce consecutive wheel events. Preview stays disabled until
+        // the wheel has been quiet for this period.
+        await Task.Delay(360);
+
+        if (version != _fanScrollVersion)
+        {
+            return;
+        }
+
+        _fanScrollActive = false;
+
+        // If the mouse is now stationary over a note, start the normal
+        // hover-intent timer. The existing BeginPreviewIntent delay still
+        // applies, so scrolling can never immediately pop a preview.
+        FrameworkElement? hoveredTab = FindHoveredFanTab();
+
+        if (hoveredTab is not null)
+        {
+            BeginPreviewIntent(hoveredTab);
+        }
+    }
+
+    private FrameworkElement? FindHoveredFanTab()
+    {
+        DependencyObject? current = Mouse.DirectlyOver as DependencyObject;
+
+        while (current is not null)
+        {
+            if (current is FrameworkElement element &&
+                element.DataContext is Core.Models.Note &&
+                element.IsMouseOver)
+            {
+                // Ensure this visual actually belongs to FanNotesList.
+                DependencyObject? ancestor = current;
+
+                while (ancestor is not null)
+                {
+                    if (ReferenceEquals(ancestor, FanNotesList))
+                    {
+                        return element;
+                    }
+
+                    ancestor = VisualTreeHelper.GetParent(ancestor);
+                }
+            }
+
+            current = VisualTreeHelper.GetParent(current);
+        }
+
+        return null;
+    }
+
+private void FanNote_MouseEnter(object sender, MouseEventArgs e)
+    {
+        if (_fanScrollActive)
+        {
+            return;
+        }
         if (_state != DeckState.Fan || !_fanPreviewReady)
         {
             return;
@@ -426,6 +506,10 @@ public partial class MainWindow : Window
 
     private void BeginPreviewIntent(FrameworkElement tab)
     {
+        if (_fanScrollActive)
+        {
+            return;
+        }
         if (_state != DeckState.Fan || !_fanPreviewReady || tab.DataContext is null)
         {
             return;
@@ -923,6 +1007,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 
