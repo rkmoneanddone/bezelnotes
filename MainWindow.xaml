@@ -354,6 +354,8 @@
                 <Grid>
 <Border x:Name="PreviewCard"
                 Width="235"
+                Cursor="Hand"
+                MouseLeftButtonUp="PreviewCard_MouseLeftButtonUp"
                 MinHeight="150"
                 MaxHeight="235"
                 Padding="0,15,18,17"
@@ -428,6 +430,7 @@
         </Grid>    </Popup>
 </Grid>
 </Window>
+
 
 
 

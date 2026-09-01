@@ -783,6 +783,28 @@ private void AnimatePreviewIn()
         await Task.Delay(175);
     }
 
+    private void PreviewCard_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_state != DeckState.Fan)
+        {
+            return;
+        }
+
+        if (_previewedNote is not Note note)
+        {
+            return;
+        }
+
+        e.Handled = true;
+
+        _collapseTimer.Stop();
+        _previewIntentVersion++;
+        _previewIntentTab = null;
+
+        ClosePreviewImmediately();
+        MoveToOpenState(note);
+    }
+
     private void PreviewPopup_MouseEnter(object sender, MouseEventArgs e)
     {
         _previewPopupMouseOver = true;
@@ -1030,6 +1052,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 
