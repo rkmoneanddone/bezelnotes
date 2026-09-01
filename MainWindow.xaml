@@ -81,7 +81,7 @@
                         VerticalAlignment="Center">
 
                 <ScrollViewer x:Name="FanNotesScrollViewer"
-              Height="520"
+              Height="410"
               Width="46"
               HorizontalAlignment="Right"
               VerticalScrollBarVisibility="Hidden"
@@ -447,6 +447,7 @@
         </Grid>    </Popup>
 </Grid>
 </Window>
+
 
 
 
