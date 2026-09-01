@@ -148,17 +148,8 @@ public partial class MainWindow : Window
             return;
         }
 
-        // IMPORTANT:
-        // Opening a preview hides the active tab, which can fire MouseLeave
-        // even when the physical mouse has not moved. Never collapse from
-        // FanDeck_MouseLeave while a preview is open.
-        if (PreviewPopup.IsOpen)
-        {
-            return;
-        }
-
         _collapseTimer.Stop();
-        _collapseTimer.Interval = TimeSpan.FromMilliseconds(700);
+        _collapseTimer.Interval = TimeSpan.FromMilliseconds(850);
         _collapseTimer.Start();
     }
     private void CollapseTimer_Tick(object? sender, EventArgs e)
@@ -170,9 +161,13 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (FanDeck.IsMouseOver ||
-            _previewPopupMouseOver ||
-            (PreviewPopup.IsOpen && PreviewCard.IsMouseOver))
+        bool overFan = FanDeck.IsMouseOver;
+
+        bool overPreview =
+            PreviewPopup.IsOpen &&
+            (_previewPopupMouseOver || PreviewCard.IsMouseOver);
+
+        if (overFan || overPreview)
         {
             _previewExitPending = false;
             return;
@@ -180,28 +175,17 @@ public partial class MainWindow : Window
 
         if (PreviewPopup.IsOpen)
         {
-            // Never close an open preview merely because hiding its tab caused
-            // a synthetic FanDeck/Tab MouseLeave.
-            if (!_previewExitPending)
-            {
-                return;
-            }
-
             _previewExitPending = false;
-
-            // Stage 1: close only preview, keep fan open.
             ClosePreviewImmediately();
 
-            _collapseTimer.Interval = TimeSpan.FromMilliseconds(700);
+            // Keep titles visible briefly after preview closes.
+            _collapseTimer.Interval = TimeSpan.FromMilliseconds(500);
             _collapseTimer.Start();
             return;
         }
 
-        // Stage 2: fan goes back to rest only after pointer remains outside.
-        if (!FanDeck.IsMouseOver)
-        {
-            MoveToRestState();
-        }
+        // No preview and pointer stayed away: return to 12px rest strip.
+        MoveToRestState();
     }
 
     private void PositionWindowForWidth(double width)
@@ -264,10 +248,7 @@ public partial class MainWindow : Window
 
     private async void CompleteFanTransitionAsync()
     {
-        var itemCount = Math.Max(1, FanNotesList.Items.Count);
-        var settleMs = 680 + ((itemCount - 1) * 170) + 120;
-
-        await Task.Delay(settleMs);
+        await Task.Delay(580);
 
         if (_state != DeckState.Fan)
         {
@@ -277,9 +258,8 @@ public partial class MainWindow : Window
         _fanTransitionInProgress = false;
         _fanPreviewReady = true;
 
-        // The cursor may already be stationary over a tab after the fan settles.
-        // Detect the actual final tab under the pointer instead of relying on
-        // MouseEnter events fired while tabs were still sliding.
+        // If the pointer remained over a final settled tab,
+        // begin the normal dwell-based preview intent.
         for (int i = 0; i < FanNotesList.Items.Count; i++)
         {
             if (FanNotesList.ItemContainerGenerator.ContainerFromIndex(i)
@@ -293,13 +273,7 @@ public partial class MainWindow : Window
     }
     private async Task EnablePreviewAfterFanSettlesAsync()
     {
-        var itemCount = Math.Max(1, FanNotesList.Items.Count);
-
-        // Current locked fan motion:
-        // 680ms per tab + 170ms stagger.
-        var settleMs = 680 + ((itemCount - 1) * 170) + 150;
-
-        await Task.Delay(settleMs);
+        await Task.Delay(580);
 
         if (_state != DeckState.Fan)
         {
@@ -309,75 +283,123 @@ public partial class MainWindow : Window
         _fanTransitionInProgress = false;
         _fanPreviewReady = true;
 
-        // If the cursor is already sitting over a final, settled tab,
-        // start its normal 260ms preview-intent countdown.
         await Dispatcher.InvokeAsync(() =>
         {
             for (int i = 0; i < FanNotesList.Items.Count; i++)
             {
-                var container =
-                    FanNotesList.ItemContainerGenerator.ContainerFromIndex(i)
-                    as FrameworkElement;
-
-                if (container is null || !container.IsMouseOver)
+                if (FanNotesList.ItemContainerGenerator.ContainerFromIndex(i)
+                    is FrameworkElement container &&
+                    container.IsMouseOver)
                 {
-                    continue;
+                    BeginPreviewIntent(container);
+                    break;
                 }
-
-                BeginPreviewIntent(container);
-                break;
             }
         });
     }
     private void AnimateFanDeck()
     {
-        var items = new List<ContentPresenter>();
+        var visibleItems = new List<ContentPresenter>();
+
+        FanNotesScrollViewer.UpdateLayout();
+        FanNotesList.UpdateLayout();
 
         for (int i = 0; i < FanNotesList.Items.Count; i++)
         {
-            if (FanNotesList.ItemContainerGenerator.ContainerFromIndex(i) is ContentPresenter item)
+            if (FanNotesList.ItemContainerGenerator.ContainerFromIndex(i)
+                is not ContentPresenter item)
             {
-                items.Add(item);
+                continue;
             }
+
+            // Clear animation clocks left by a previous fan opening.
+            item.BeginAnimation(OpacityProperty, null);
+
+            if (item.RenderTransform is TranslateTransform oldTransform)
+            {
+                oldTransform.BeginAnimation(
+                    TranslateTransform.XProperty,
+                    null);
+            }
+
+            var p = item.TranslatePoint(
+                new Point(0, 0),
+                FanNotesScrollViewer);
+
+            bool isVisible =
+                p.Y < FanNotesScrollViewer.ActualHeight &&
+                (p.Y + Math.Max(item.ActualHeight, 1)) > 0;
+
+            if (!isVisible)
+            {
+                item.RenderTransform = new TranslateTransform(0, 0);
+                item.Opacity = 1;
+                continue;
+            }
+
+            visibleItems.Add(item);
         }
 
-        // Force visual order from top to bottom.
-        items = items
-            .OrderBy(item => item.TranslatePoint(new Point(0, 0), FanDeck).Y)
+        visibleItems = visibleItems
+            .OrderBy(item =>
+                item.TranslatePoint(
+                    new Point(0, 0),
+                    FanNotesScrollViewer).Y)
             .ToList();
 
-        for (int i = 0; i < items.Count; i++)
+        for (int i = 0; i < visibleItems.Count; i++)
         {
-            var item = items[i];
+            var item = visibleItems[i];
 
-            var transform = new TranslateTransform(20, 0);
+            var transform = new TranslateTransform(18, 0);
             item.RenderTransform = transform;
             item.Opacity = 0;
 
-            var delay = TimeSpan.FromMilliseconds(i * 170);
+            // Small stagger only among the visible tabs.
+            var delay = TimeSpan.FromMilliseconds(i * 45);
 
             var slide = new DoubleAnimation
             {
-                From = 20,
+                From = 18,
                 To = 0,
-                Duration = TimeSpan.FromMilliseconds(680),
+                Duration = TimeSpan.FromMilliseconds(360),
                 BeginTime = delay,
                 EasingFunction = new CubicEase
                 {
                     EasingMode = EasingMode.EaseOut
-                }
+                },
+                FillBehavior = FillBehavior.Stop
             };
 
             var fade = new DoubleAnimation
             {
                 From = 0,
                 To = 1,
-                Duration = TimeSpan.FromMilliseconds(520),
-                BeginTime = delay
+                Duration = TimeSpan.FromMilliseconds(260),
+                BeginTime = delay,
+                FillBehavior = FillBehavior.Stop
             };
 
-            transform.BeginAnimation(TranslateTransform.XProperty, slide);
-            item.BeginAnimation(OpacityProperty, fade);
+            slide.Completed += (_, _) =>
+            {
+                transform.BeginAnimation(
+                    TranslateTransform.XProperty,
+                    null);
+                transform.X = 0;
+
+                item.BeginAnimation(
+                    OpacityProperty,
+                    null);
+                item.Opacity = 1;
+            };
+
+            transform.BeginAnimation(
+                TranslateTransform.XProperty,
+                slide);
+
+            item.BeginAnimation(
+                OpacityProperty,
+                fade);
         }
     }
     private CustomPopupPlacement[] PreviewPopup_CustomPopupPlacement(
@@ -784,16 +806,15 @@ private void AnimatePreviewIn()
     private void PreviewPopup_MouseLeave(object sender, MouseEventArgs e)
     {
         _previewPopupMouseOver = false;
+        _previewExitPending = true;
 
         if (_state != DeckState.Fan)
         {
             return;
         }
 
-        _previewExitPending = true;
-
         _collapseTimer.Stop();
-        _collapseTimer.Interval = TimeSpan.FromMilliseconds(700);
+        _collapseTimer.Interval = TimeSpan.FromMilliseconds(850);
         _collapseTimer.Start();
     }
 
@@ -1019,6 +1040,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 
