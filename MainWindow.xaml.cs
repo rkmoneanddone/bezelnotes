@@ -912,10 +912,13 @@ private void ClosePreviewImmediately()
         await App.NoteStore.SaveNoteAsync(note);
         _notes.Add(note);
 
-        // Point 2 only: remain in the title deck.
-        // Full note opening will be added in a later step.
         FanNotesList.Items.Refresh();
         RestDashList.Items.Refresh();
+        OpenDeckList.Items.Refresh();
+
+        // Restore intended flow:
+        // creating a note immediately opens the existing full editor.
+        MoveToOpenState(note);
     }
     private void Editor_TextChanged(object sender, TextChangedEventArgs e)
     {
@@ -1027,6 +1030,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 
