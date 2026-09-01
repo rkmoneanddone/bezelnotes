@@ -418,7 +418,20 @@ public partial class MainWindow : Window
             }
         }
 
-        return new[]
+                // FORCE_LAST_NOTE_PREVIEW_UP
+        // The final fan note sits closest to the fixed + area.
+        // Always keep its preview clearly above that lower zone.
+        if (PreviewPopup.PlacementTarget is FrameworkElement placementTarget &&
+            FanNotesList.Items.Count > 0)
+        {
+            object lastNote = FanNotesList.Items[FanNotesList.Items.Count - 1];
+
+            if (ReferenceEquals(placementTarget.DataContext, lastNote))
+            {
+                yOffset = Math.Min(yOffset, -145);
+            }
+        }
+return new[]
         {
             new CustomPopupPlacement(
                 new Point(
@@ -1039,6 +1052,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 
