@@ -516,6 +516,7 @@ public partial class MainWindow : Window
         UpdateAddButtonPreviewOffset(note);
 
         _previewExitPending = false;
+        ApplyLastNotePreviewOffset(tab);
         PreviewPopup.IsOpen = true;
 
         await Dispatcher.InvokeAsync(
@@ -683,7 +684,42 @@ public partial class MainWindow : Window
         _collapseTimer.Start();
     }
 
-    private void ClosePreviewImmediately()
+        private void ApplyLastNotePreviewOffset(FrameworkElement tab)
+    {
+        // Normal notes keep the exact existing placement.
+        PreviewPopup.VerticalOffset = 0;
+
+        // Only the last visible tab gets a small upward correction so that
+        // the preview does not cover the persistent + button underneath.
+        if (FanNotesList.ItemContainerGenerator.ContainerFromItem(tab.DataContext)
+            is not FrameworkElement currentContainer)
+        {
+            return;
+        }
+
+        int itemCount = FanNotesList.Items.Count;
+        if (itemCount <= 0)
+        {
+            return;
+        }
+
+        var lastContainer =
+            FanNotesList.ItemContainerGenerator.ContainerFromIndex(itemCount - 1)
+            as FrameworkElement;
+
+        if (lastContainer is null ||
+            !ReferenceEquals(currentContainer, lastContainer))
+        {
+            return;
+        }
+
+        // Preview max height is ~235px while a fan tab is ~116px.
+        // This lifts only the final preview enough to leave the + visible,
+        // without changing the fan layout or any other note placement.
+        PreviewPopup.VerticalOffset = -72;
+    }
+
+private void ClosePreviewImmediately()
     {
         _previewExitPending = false;
         _previewIntentVersion++;
@@ -903,6 +939,7 @@ public partial class MainWindow : Window
         }
     }
 }
+
 
 
 
