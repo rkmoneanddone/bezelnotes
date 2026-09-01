@@ -91,7 +91,7 @@
               <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <TextBox x:Name="TitleBox" FontSize="18" Foreground="{Binding Color, Converter={StaticResource NoteForegroundConverter}}" FontWeight="DemiBold" Background="Transparent" BorderThickness="0" Padding="0" TextChanged="Editor_TextChanged" />
-            <Button Grid.Column="1" Content="−" Width="28" Height="28" FontSize="17" Style="{StaticResource RoundButton}" ToolTip="Minimize note" Click="CloseNoteButton_Click">
+            <Button Grid.Column="1" Content="âˆ’" Width="28" Height="28" FontSize="17" Style="{StaticResource RoundButton}" ToolTip="Minimize note" Click="CloseNoteButton_Click">
               <Button.Template>
                 <ControlTemplate TargetType="Button">
                   <Border Background="{TemplateBinding Background}" CornerRadius="14">
@@ -103,7 +103,7 @@
           </Grid>
           <Rectangle Grid.Row="1" Height="1" Margin="0,5,0,5" VerticalAlignment="Center" Stroke="#45000000" StrokeThickness="1" StrokeDashArray="1,3" />
           <TextBox x:Name="ContentBox" Grid.Row="2" Margin="0,10,0,10" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Background="Transparent" BorderThickness="0" FontSize="15" Foreground="{Binding Color, Converter={StaticResource NoteForegroundConverter}}" TextChanged="Editor_TextChanged" />
-          <Border xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Grid.Row="3" Margin="-14,2,-14,-14" Padding="14,9,14,11" Background="#FFFFFFFF" BorderBrush="#44000000" BorderThickness="0,1,0,0">
+          <Border xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Grid.Row="3" Margin="-14,2,-14,-14" Padding="8,9,8,11" Background="#FFFFFFFF" BorderBrush="#44000000" BorderThickness="0,1,0,0">
             <Grid>
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
@@ -114,11 +114,12 @@
                 <Button Width="20" Height="20" Margin="0,0,6,0" Background="#FFDD69" BorderThickness="0" Tag="Yellow" Cursor="Hand" Click="ColorButton_Click" />
                 <Button Width="20" Height="20" Margin="0,0,6,0" Background="#AEE5D1" BorderThickness="0" Tag="Mint" Cursor="Hand" Click="ColorButton_Click" />
                 <Button Width="20" Height="20" Margin="0,0,6,0" Background="#B7DCF4" BorderThickness="0" Tag="Blue" Cursor="Hand" Click="ColorButton_Click" />
+                <Button xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" Width="20" Height="20" Margin="0,0,6,0" Background="#FFD3A1" BorderThickness="0" Tag="Orange" Cursor="Hand" Click="ColorButton_Click" />
                 <Button Width="20" Height="20" Margin="0,0,6,0" Background="#586174" BorderThickness="0" Tag="Slate" Cursor="Hand" Click="ColorButton_Click" />
                 <Button Width="20" Height="20" Background="#466B57" BorderThickness="0" Tag="Forest" Cursor="Hand" Click="ColorButton_Click" />
               </StackPanel>
               <TextBlock x:Name="SaveStatusText" Grid.Column="1" Margin="12,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="13.5" Foreground="#666666" />
-              <Button Grid.Column="2" Content="Delete" Padding="10,4" BorderThickness="0" Background="#FFF3F3F3" Foreground="#7A4B4B" Cursor="Hand" Click="DeleteButton_Click" />
+              <Button Grid.Column="2" Content="Delete" Padding="10,4" BorderThickness="0" Background="#FFF3F3F3" Foreground="#5E2F2F" Cursor="Hand" Click="DeleteButton_Click" FontSize="14.5" FontWeight="SemiBold" />
             </Grid>
           </Border>
         </Grid>
