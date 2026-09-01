@@ -1,4 +1,4 @@
-﻿<Window x:Class="StickyNotes.MainWindow"
+<Window x:Class="StickyNotes.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:services="clr-namespace:StickyNotes.Services"
@@ -103,7 +103,7 @@
                                         Background="{Binding Color, Converter={StaticResource NoteColorConverter}}"
                                         BorderBrush="#22000000"
                                         BorderThickness="1"
-                                        Cursor="Arrow"
+                                        Cursor="Hand"
                       MouseEnter="FanNote_MouseEnter"
                                         MouseLeave="FanNote_MouseLeave">
 
@@ -215,7 +215,7 @@
                                  TextChanged="Editor_TextChanged"/>
 
                         <Button Grid.Column="1"
-                                Content="Ã—"
+                                Content="×"
                                 Width="28"
                                 Height="28"
                                 FontSize="17"
@@ -426,6 +426,7 @@
         </Grid>    </Popup>
 </Grid>
 </Window>
+
 
 
 
