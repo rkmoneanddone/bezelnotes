@@ -1,4 +1,4 @@
-<Window x:Class="StickyNotes.MainWindow"
+﻿<Window x:Class="StickyNotes.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:services="clr-namespace:StickyNotes.Services"
@@ -33,6 +33,8 @@
         <!-- REST -->
         <Border x:Name="RestPill"
                 Width="12"
+                Height="166"
+                ClipToBounds="True"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Center"
                 Background="#5F6675"
@@ -215,7 +217,7 @@
                                  TextChanged="Editor_TextChanged"/>
 
                         <Button Grid.Column="1"
-                                Content="×"
+                                Content="Ã—"
                                 Width="28"
                                 Height="28"
                                 FontSize="17"
@@ -426,6 +428,7 @@
         </Grid>    </Popup>
 </Grid>
 </Window>
+
 
 
 
