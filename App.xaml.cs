@@ -58,7 +58,7 @@ public partial class App : Application
             jumpList.JumpItems.Add(new JumpTask
             {
                 Title = "Settings",
-                Description = "Open BezelStickNotes Settings",
+                Description = "Open Bezel Sticky Notes Settings",
                 ApplicationPath = executablePath,
                 Arguments = "--settings",
                 IconResourcePath = executablePath
@@ -73,6 +73,7 @@ public partial class App : Application
         }
     }
 }
+
 
 
 
