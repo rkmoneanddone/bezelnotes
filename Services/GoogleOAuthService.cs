@@ -199,8 +199,11 @@ public sealed class GoogleOAuthService
 
         if (!response.IsSuccessStatusCode)
         {
+            string googleError =
+                ParseGoogleTokenError(body);
+
             throw new InvalidOperationException(
-                "Google token exchange failed.");
+                $"Google token exchange failed: {googleError}");
         }
 
         using JsonDocument document =
@@ -220,6 +223,40 @@ public sealed class GoogleOAuthService
                 "Google ID token is empty.");
     }
 
+    private static string ParseGoogleTokenError(
+        string body)
+    {
+        try
+        {
+            using JsonDocument document =
+                JsonDocument.Parse(body);
+
+            JsonElement root =
+                document.RootElement;
+
+            string error =
+                root.TryGetProperty(
+                    "error",
+                    out JsonElement errorElement)
+                    ? errorElement.GetString() ?? "unknown_error"
+                    : "unknown_error";
+
+            string description =
+                root.TryGetProperty(
+                    "error_description",
+                    out JsonElement descriptionElement)
+                    ? descriptionElement.GetString() ?? string.Empty
+                    : string.Empty;
+
+            return string.IsNullOrWhiteSpace(description)
+                ? error
+                : $"{error} - {description}";
+        }
+        catch
+        {
+            return "Google returned an unreadable token error.";
+        }
+    }
     private static async Task<string> ReadHttpRequestAsync(
         NetworkStream stream,
         CancellationToken cancellationToken)
