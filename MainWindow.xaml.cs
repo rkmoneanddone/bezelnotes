@@ -23,6 +23,8 @@ public partial class MainWindow : Window
     }
 
     private readonly ObservableCollection<Note> _notes = new();
+    private readonly StickyNotes.Services.SettingsService _settingsService = new();
+    private StickyNotes.Core.Models.AppSettings _appSettings = new();
     private readonly DispatcherTimer _saveTimer;
     private readonly DispatcherTimer _collapseTimer;
     private readonly DispatcherTimer _fanHoverTimer;
@@ -49,6 +51,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        _appSettings = _settingsService.Load();
 
         RestDashList.ItemsSource = _notes;
         FanNotesList.ItemsSource = _notes;
@@ -195,8 +198,18 @@ public partial class MainWindow : Window
         var work = SystemParameters.WorkArea;
 
         Width = width;
-        Left = work.Right - width;
         Top = work.Top + Math.Max(20, (work.Height - Height) / 2);
+
+        if (string.Equals(
+                _appSettings.Edge,
+                "Left",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            Left = work.Left;
+            return;
+        }
+
+        Left = work.Right - width;
     }
 
     private void MoveToRestState(bool initial = false)
@@ -1132,7 +1145,12 @@ private void ClosePreviewImmediately()
         }
 
         _settingsWindow = new SettingsWindow();
-        _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+                _settingsWindow.Closed += (_, _) =>
+        {
+            _settingsWindow = null;
+            _appSettings = _settingsService.Load();
+            MoveToRestState();
+        };
         _settingsWindow.Show();
         _settingsWindow.Activate();
     }
@@ -1164,6 +1182,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 

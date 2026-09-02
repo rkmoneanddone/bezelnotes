@@ -1,7 +1,9 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Linq;
 using System.Reflection;
 using System.Windows;
+using System.Windows.Threading;
 using System.Windows.Controls;
 using StickyNotes.Core.Models;
 using StickyNotes.Services;
@@ -12,10 +14,21 @@ public partial class SettingsWindow : Window
 {
     private readonly SettingsService _settingsService = new();
     private AppSettings _settings = new();
+    private readonly DispatcherTimer _savedTimer;
 
     public SettingsWindow()
     {
         InitializeComponent();
+        _savedTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(2)
+        };
+
+        _savedTimer.Tick += (_, _) =>
+        {
+            _savedTimer.Stop();
+            SaveStatusText.Text = string.Empty;
+        };
         LoadSettings();
         LoadVersion();
     }
@@ -65,7 +78,11 @@ public partial class SettingsWindow : Window
         _settings.DefaultColor = GetComboValue(DefaultColorComboBox, "Yellow");
 
         _settingsService.Save(_settings);
+        ApplyStartWithWindows(_settings.StartWithWindows);
+
         SaveStatusText.Text = "Saved";
+        _savedTimer.Stop();
+        _savedTimer.Start();
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
@@ -77,4 +94,32 @@ public partial class SettingsWindow : Window
     {
         Application.Current.Shutdown();
     }
+    private static void ApplyStartWithWindows(bool enabled)
+    {
+        const string keyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
+        const string valueName = "BezelStickyNotes";
+
+        using var key = Registry.CurrentUser.OpenSubKey(keyPath, writable: true);
+
+        if (key is null)
+        {
+            return;
+        }
+
+        if (!enabled)
+        {
+            key.DeleteValue(valueName, throwOnMissingValue: false);
+            return;
+        }
+
+        var executablePath = Environment.ProcessPath;
+
+        if (string.IsNullOrWhiteSpace(executablePath))
+        {
+            return;
+        }
+
+        key.SetValue(valueName, $"\"{executablePath}\"");
+    }
 }
+
