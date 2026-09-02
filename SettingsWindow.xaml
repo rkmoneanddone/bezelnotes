@@ -54,25 +54,25 @@
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
     <StackPanel Grid.Row="0" Margin="2,0,2,16">
-      <TextBlock Text="Bezel Sticky Notes Settings" FontSize="26" FontWeight="SemiBold" Foreground="#25282D" />
-      <TextBlock Text="StickyNotes preferences and account" Margin="0,4,0,0" FontSize="13.5" Foreground="#4A4E54" />
+      <TextBlock Text="Bezel Sticky Notes Settings" FontSize="26" FontWeight="SemiBold" Foreground="#34373C" />
+      <TextBlock Text="StickyNotes preferences and account" Margin="0,4,0,0" FontSize="13.5" Foreground="#34373C" FontWeight="Normal" />
     </StackPanel>
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
       <StackPanel>
         <Border Style="{StaticResource SectionCard}">
           <StackPanel>
-            <TextBlock Text="Account &amp; Plan" FontSize="16" FontWeight="SemiBold" Foreground="#30343A" />
+            <TextBlock Text="Account &amp; Plan" FontSize="16" FontWeight="SemiBold" Foreground="#34373C" />
             <Grid Margin="0,14,0,0">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <StackPanel>
-                <TextBlock Text="7-day free trial" FontSize="15" FontWeight="SemiBold" Foreground="#34383E" />
-                <TextBlock Text="Trial starts when your account is activated." Margin="0,3,0,0" FontSize="13" Foreground="#4A4E54" />
+                <TextBlock Text="7-day free trial" FontSize="15" FontWeight="Normal" Foreground="#34373C" />
+                <TextBlock Text="Trial starts when your account is activated." Margin="0,3,0,0" FontSize="14" Foreground="#34373C" FontWeight="Normal" />
               </StackPanel>
               <Border Grid.Column="1" Padding="10,5" Background="#FFF2D6" CornerRadius="10" VerticalAlignment="Center">
-                <TextBlock Text="Not started" FontSize="12.5" Foreground="#7B5B17" />
+                <TextBlock Text="Not started" FontSize="13.5" Foreground="#34373C" FontWeight="Normal" />
               </Border>
             </Grid>
             <Button Content="Sign in / Create account" Margin="0,16,0,0" HorizontalAlignment="Left" IsEnabled="False" ToolTip="Firebase account connection is the next backend phase" />
@@ -80,7 +80,7 @@
         </Border>
         <Border Style="{StaticResource SectionCard}">
           <StackPanel>
-            <TextBlock Text="General" FontSize="16" FontWeight="SemiBold" Foreground="#30343A" />
+            <TextBlock Text="General" FontSize="16" FontWeight="SemiBold" Foreground="#34373C" />
             <CheckBox x:Name="StartWithWindowsCheckBox" Content="Start StickyNotes with Windows" Margin="0,14,0,0" />
             <Grid Margin="0,14,0,0">
               <Grid.ColumnDefinitions>
@@ -88,8 +88,8 @@
                 <ColumnDefinition Width="190" />
               </Grid.ColumnDefinitions>
               <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="Default note color" FontSize="14" FontWeight="Normal" />
-                <TextBlock Text="Used for newly created notes" FontSize="12.5" Foreground="#4A4E54" />
+                <TextBlock Text="Default note color" FontSize="14" FontWeight="Normal" Foreground="#34373C" />
+                <TextBlock Text="Used for newly created notes" FontSize="13.5" Foreground="#34373C" FontWeight="Normal" />
               </StackPanel>
               <ComboBox x:Name="DefaultColorComboBox" Grid.Column="1" SelectedIndex="0">
                 <ComboBoxItem Content="Yellow" />
@@ -104,8 +104,8 @@
         </Border>
         <Border Style="{StaticResource SectionCard}">
           <StackPanel>
-            <TextBlock Text="Cloud" FontSize="16" FontWeight="SemiBold" Foreground="#30343A" />
-            <TextBlock Text="Your note content will sync only to storage you own." Margin="0,8,0,0" FontSize="13.5" Foreground="#4A4E54" TextWrapping="Wrap" />
+            <TextBlock Text="Cloud" FontSize="16" FontWeight="SemiBold" Foreground="#34373C" />
+            <TextBlock Text="Your note content will sync only to storage you own." Margin="0,8,0,0" FontSize="13.5" Foreground="#34373C" TextWrapping="Wrap" FontWeight="Normal" />
             <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
               <Button Content="Google Drive" IsEnabled="False" Margin="0,0,8,0" />
               <Button Content="OneDrive" IsEnabled="False" />
@@ -114,16 +114,16 @@
         </Border>
         <Border Style="{StaticResource SectionCard}">
           <StackPanel>
-            <TextBlock Text="About" FontSize="16" FontWeight="SemiBold" Foreground="#30343A" />
+            <TextBlock Text="About" FontSize="16" FontWeight="SemiBold" Foreground="#34373C" />
             <Grid Margin="0,12,0,0">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
-              <TextBlock Text="StickyNotes" FontSize="14" VerticalAlignment="Center" />
-              <TextBlock x:Name="VersionText" Grid.Column="1" FontSize="13.5" Foreground="#4A4E54" VerticalAlignment="Center" />
+              <TextBlock Text="StickyNotes" FontSize="14" VerticalAlignment="Center" Foreground="#34373C" FontWeight="Normal" />
+              <TextBlock x:Name="VersionText" Grid.Column="1" FontSize="13.5" Foreground="#34373C" VerticalAlignment="Center" FontWeight="Normal" />
             </Grid>
-            <TextBlock Text="Your notes remain local unless you explicitly enable your own cloud storage." Margin="0,10,0,0" FontSize="12.5" Foreground="#4A4E54" TextWrapping="Wrap" />
+            <TextBlock Text="Your notes remain local unless you explicitly enable your own cloud storage." Margin="0,10,0,0" FontSize="13.5" Foreground="#34373C" TextWrapping="Wrap" FontWeight="Normal" />
           </StackPanel>
         </Border>
       </StackPanel>

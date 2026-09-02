@@ -525,7 +525,7 @@ return new[]
         {
             new CustomPopupPlacement(
                 new Point(
-                    -popupSize.Width,
+                    targetSize.Width - popupSize.Width,
                     yOffset),
                 PopupPrimaryAxis.Horizontal)
         };
@@ -1263,6 +1263,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 
