@@ -1,4 +1,4 @@
-﻿import { onRequest } from "firebase-functions/v2/https";
+import { onRequest } from "firebase-functions/v2/https";
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import {
@@ -54,7 +54,7 @@ function requireInstallationId(value: unknown): string {
 
 export const bootstrapAccount = onRequest(
   {
-    region: "us-central1",
+    region: "asia-south1",
     cors: false,
     invoker: "public",
   },
@@ -218,3 +218,4 @@ export const bootstrapAccount = onRequest(
       response.status(500).json({ error: "INTERNAL_ERROR" });
     }
   });
+

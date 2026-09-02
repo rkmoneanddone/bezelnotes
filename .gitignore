@@ -10,3 +10,8 @@ obj/
 
 *.backup_*
 *.resourcefix_*.bak
+firebase-backend/functions/node_modules/
+firebase-backend/functions/lib/
+firebase-backend/.firebase/
+firebase-debug.log
+firebase-backend/firebase-debug.log
