@@ -17,8 +17,8 @@ public partial class AccountWindow : Window
 
         ConfigPathText.Text =
             config.IsConfigured
-                ? "Firebase secure backend configured."
-                : $"Firebase is not configured yet. Edit: {_configService.ConfigPath}";
+                ? "Secure account backend connected."
+                : $"Account backend is not configured. Edit: {_configService.ConfigPath}";
     }
 
     private async void GoogleSignInButton_Click(
@@ -199,8 +199,31 @@ public partial class AccountWindow : Window
                 _ =>
                     $"Signed in as {state.Email}. Account verified."
             };
+
+        await CloseAfterSuccessfulSignInAsync();
     }
 
+    private async Task CloseAfterSuccessfulSignInAsync()
+    {
+        StatusBorder.Background =
+            new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(
+                    232,
+                    245,
+                    233));
+
+        StatusBorder.BorderBrush =
+            new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(
+                    174,
+                    213,
+                    177));
+
+        await Task.Delay(900);
+
+        DialogResult = true;
+        Close();
+    }
     private void SetBusy(bool busy)
     {
         GoogleSignInButton.IsEnabled =
