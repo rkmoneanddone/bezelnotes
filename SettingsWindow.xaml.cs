@@ -15,6 +15,7 @@ public partial class SettingsWindow : Window
     private readonly SettingsService _settingsService = new();
     private AppSettings _settings = new();
     private readonly DispatcherTimer _savedTimer;
+    public event Action<AppSettings>? SettingsSaved;
 
     public SettingsWindow()
     {
@@ -79,6 +80,7 @@ public partial class SettingsWindow : Window
 
         _settingsService.Save(_settings);
         ApplyStartWithWindows(_settings.StartWithWindows);
+        SettingsSaved?.Invoke(_settings);
 
         SaveStatusText.Text = "Saved";
         _savedTimer.Stop();
@@ -122,4 +124,5 @@ public partial class SettingsWindow : Window
         key.SetValue(valueName, $"\"{executablePath}\"");
     }
 }
+
 

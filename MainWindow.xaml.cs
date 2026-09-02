@@ -52,6 +52,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _appSettings = _settingsService.Load();
+        ApplyEdgeLayout();
 
         RestDashList.ItemsSource = _notes;
         FanNotesList.ItemsSource = _notes;
@@ -191,6 +192,38 @@ public partial class MainWindow : Window
 
         // No preview and pointer stayed away: return to 12px rest strip.
         MoveToRestState();
+    }
+
+    private void ApplyEdgeLayout()
+    {
+        bool isLeft = string.Equals(
+            _appSettings.Edge,
+            "Left",
+            StringComparison.OrdinalIgnoreCase);
+
+        RestPill.HorizontalAlignment = isLeft
+            ? HorizontalAlignment.Left
+            : HorizontalAlignment.Right;
+
+        RestPill.CornerRadius = isLeft
+            ? new CornerRadius(0, 6, 6, 0)
+            : new CornerRadius(6, 0, 0, 6);
+
+        FanDeck.HorizontalAlignment = isLeft
+            ? HorizontalAlignment.Left
+            : HorizontalAlignment.Right;
+
+        FanNotesList.HorizontalAlignment = isLeft
+            ? HorizontalAlignment.Left
+            : HorizontalAlignment.Right;
+
+        AddButton.HorizontalAlignment = isLeft
+            ? HorizontalAlignment.Left
+            : HorizontalAlignment.Right;
+
+        AddButton.Margin = isLeft
+            ? new Thickness(8, 12, 0, 0)
+            : new Thickness(0, 12, 8, 0);
     }
 
     private void PositionWindowForWidth(double width)
@@ -1145,12 +1178,23 @@ private void ClosePreviewImmediately()
         }
 
         _settingsWindow = new SettingsWindow();
-                _settingsWindow.Closed += (_, _) =>
+
+        _settingsWindow.SettingsSaved += settings =>
+        {
+            _appSettings = settings;
+            ApplyEdgeLayout();
+            MoveToRestState();
+        };
+
+        _settingsWindow.Closed += (_, _) =>
         {
             _settingsWindow = null;
             _appSettings = _settingsService.Load();
+        ApplyEdgeLayout();
+            ApplyEdgeLayout();
             MoveToRestState();
         };
+
         _settingsWindow.Show();
         _settingsWindow.Activate();
     }
@@ -1182,6 +1226,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 
