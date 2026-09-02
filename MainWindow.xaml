@@ -11,6 +11,25 @@
     </Style>
   </Window.Resources>
   <Grid x:Name="RootGrid">
+    <Border x:Name="EmptyRestHint"
+            Width="76"
+            Height="32"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Center"
+            Background="#F4F5F7"
+            BorderBrush="#33000000"
+            BorderThickness="1"
+            CornerRadius="10,0,0,10"
+            Cursor="Hand"
+            Visibility="Collapsed"
+            MouseLeftButtonUp="EmptyRestHint_MouseLeftButtonUp">
+      <TextBlock Text="+ New note"
+                 FontSize="13"
+                 FontWeight="SemiBold"
+                 Foreground="#3E434A"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center" />
+    </Border>
     <!-- REST -->
     <Border x:Name="RestPill" Width="12" ClipToBounds="True" HorizontalAlignment="Right" VerticalAlignment="Center" Background="#5F6675" CornerRadius="6,0,0,6" Padding="2,6" Opacity="0.96" MaxHeight="166">
       <Border.ContextMenu>

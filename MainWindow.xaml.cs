@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Controls;
@@ -45,6 +45,7 @@ public partial class MainWindow : Window
     private FrameworkElement? _previewedTab;
 
     private const double RestWidth = 14;
+    private const double EmptyRestWidth = 78;
     private const double FanWidth = 60;
     private const double OpenWidth = 420;
 
@@ -80,6 +81,7 @@ public partial class MainWindow : Window
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
         await LoadNotesAsync();
+        await EnsureWelcomeNotesAsync();
         MoveToRestState(initial: true);
     }
 
@@ -95,7 +97,92 @@ public partial class MainWindow : Window
         }
     }
 
-    private void Window_MouseEnter(object sender, MouseEventArgs e)
+        private static string WelcomeNotesMarkerPath =>
+        System.IO.Path.Combine(
+            Environment.GetFolderPath(
+                Environment.SpecialFolder.LocalApplicationData),
+            "StickyNotes",
+            "welcome-notes-v1.done");
+
+    private async Task EnsureWelcomeNotesAsync()
+    {
+        string markerPath =
+            WelcomeNotesMarkerPath;
+
+        if (System.IO.File.Exists(markerPath))
+        {
+            return;
+        }
+
+        string? directory =
+            System.IO.Path.GetDirectoryName(markerPath);
+
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            System.IO.Directory.CreateDirectory(directory);
+        }
+
+        if (_notes.Count > 0)
+        {
+            System.IO.File.WriteAllText(
+                markerPath,
+                "existing-user");
+
+            return;
+        }
+
+        Note[] welcomeNotes =
+        {
+            new Note
+            {
+                Title = "Welcome to Bezel",
+                Content =
+                    "Your notes live on the right edge of your screen. Hover over the colored title tabs to preview them. Click a preview to open and edit the note.",
+                Color = "Yellow",
+                SortOrder = 0
+            },
+
+            new Note
+            {
+                Title = "This is the title tab",
+                Content =
+                    "The vertical colored tab shows your note title. In the full note editor, use the color choices at the bottom to organize your notes.",
+                Color = "Mint",
+                SortOrder = 1
+            },
+
+            new Note
+            {
+                Title = "Create your own note",
+                Content =
+                    "Use the + button below the tabs to create a new note. You can edit or delete these welcome notes anytime.",
+                Color = "Blue",
+                SortOrder = 2
+            }
+        };
+
+        foreach (Note note in welcomeNotes)
+        {
+            await App.NoteStore.SaveNoteAsync(note);
+            _notes.Add(note);
+        }
+
+        System.IO.File.WriteAllText(
+            markerPath,
+            "seeded");
+    }
+
+    private void EmptyRestHint_MouseLeftButtonUp(
+        object sender,
+        MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+
+        AddButton_Click(
+            sender,
+            new RoutedEventArgs());
+    }
+private void Window_MouseEnter(object sender, MouseEventArgs e)
     {
         _collapseTimer.Stop();
 
@@ -295,10 +382,27 @@ public partial class MainWindow : Window
         OpenState.Visibility = Visibility.Collapsed;
         FanDeck.Visibility = Visibility.Collapsed;
 
-        RestPill.Visibility = Visibility.Visible;
-        RestPill.Opacity = 1;
+        bool hasNotes = _notes.Count > 0;
 
-        PositionWindowForWidth(RestWidth);
+        RestPill.Visibility =
+            hasNotes
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+        EmptyRestHint.Visibility =
+            hasNotes
+                ? Visibility.Collapsed
+                : Visibility.Visible;
+
+        if (hasNotes)
+        {
+            RestPill.Opacity = 1;
+        }
+
+        PositionWindowForWidth(
+            hasNotes
+                ? RestWidth
+                : EmptyRestWidth);
 
         if (!initial)
         {
@@ -315,6 +419,7 @@ public partial class MainWindow : Window
         _state = DeckState.Fan;
 
         RestPill.Visibility = Visibility.Collapsed;
+        EmptyRestHint.Visibility = Visibility.Collapsed;
         OpenState.Visibility = Visibility.Collapsed;
 
         PositionWindowForWidth(FanWidth);
