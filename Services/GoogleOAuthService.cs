@@ -1,24 +1,24 @@
 using System.Diagnostics;
 using System.Net;
-using System.Net.Http;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 
 namespace StickyNotes.Services;
 
 public sealed class GoogleOAuthResult
 {
-    public string IdToken { get; init; } = string.Empty;
+    public string Code { get; init; } = string.Empty;
+    public string CodeVerifier { get; init; } = string.Empty;
+    public string RedirectUri { get; init; } = string.Empty;
 }
 
 public sealed class GoogleOAuthService
 {
     private readonly string _clientId;
-    private readonly HttpClient _httpClient = new();
 
-    public GoogleOAuthService(string clientId)
+    public GoogleOAuthService(
+        string clientId)
     {
         _clientId = clientId;
     }
@@ -32,12 +32,20 @@ public sealed class GoogleOAuthService
                 "Google OAuth client ID is not configured.");
         }
 
-        string state = CreateRandomUrlSafeValue(32);
-        string codeVerifier = CreateRandomUrlSafeValue(64);
-        string codeChallenge = CreateCodeChallenge(codeVerifier);
+        string state =
+            CreateRandomUrlSafeValue(32);
+
+        string codeVerifier =
+            CreateRandomUrlSafeValue(64);
+
+        string codeChallenge =
+            CreateCodeChallenge(
+                codeVerifier);
 
         using var listener =
-            new TcpListener(IPAddress.Loopback, 0);
+            new TcpListener(
+                IPAddress.Loopback,
+                0);
 
         listener.Start();
 
@@ -83,7 +91,8 @@ public sealed class GoogleOAuthService
             ParseCallbackRequest(
                 requestText);
 
-        if (!string.IsNullOrWhiteSpace(callback.Error))
+        if (!string.IsNullOrWhiteSpace(
+                callback.Error))
         {
             await WriteHttpResponseAsync(
                 stream,
@@ -110,7 +119,8 @@ public sealed class GoogleOAuthService
                 "Google OAuth state validation failed.");
         }
 
-        if (string.IsNullOrWhiteSpace(callback.Code))
+        if (string.IsNullOrWhiteSpace(
+                callback.Code))
         {
             await WriteHttpResponseAsync(
                 stream,
@@ -128,16 +138,11 @@ public sealed class GoogleOAuthService
                 "Google sign-in completed. You can return to Bezel Sticky Notes."),
             timeoutCts.Token);
 
-        string idToken =
-            await ExchangeCodeAsync(
-                callback.Code,
-                redirectUri,
-                codeVerifier,
-                timeoutCts.Token);
-
         return new GoogleOAuthResult
         {
-            IdToken = idToken
+            Code = callback.Code,
+            CodeVerifier = codeVerifier,
+            RedirectUri = redirectUri
         };
     }
 
@@ -170,98 +175,12 @@ public sealed class GoogleOAuthService
             $"https://accounts.google.com/o/oauth2/v2/auth?{query}";
     }
 
-    private async Task<string> ExchangeCodeAsync(
-        string code,
-        string redirectUri,
-        string codeVerifier,
-        CancellationToken cancellationToken)
-    {
-        using var content =
-            new FormUrlEncodedContent(
-                new Dictionary<string, string>
-                {
-                    ["client_id"] = _clientId,
-                    ["code"] = code,
-                    ["code_verifier"] = codeVerifier,
-                    ["redirect_uri"] = redirectUri,
-                    ["grant_type"] = "authorization_code"
-                });
-
-        using HttpResponseMessage response =
-            await _httpClient.PostAsync(
-                "https://oauth2.googleapis.com/token",
-                content,
-                cancellationToken);
-
-        string body =
-            await response.Content.ReadAsStringAsync(
-                cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            string googleError =
-                ParseGoogleTokenError(body);
-
-            throw new InvalidOperationException(
-                $"Google token exchange failed: {googleError}");
-        }
-
-        using JsonDocument document =
-            JsonDocument.Parse(body);
-
-        if (!document.RootElement.TryGetProperty(
-                "id_token",
-                out JsonElement idTokenElement))
-        {
-            throw new InvalidOperationException(
-                "Google did not return an ID token.");
-        }
-
-        return
-            idTokenElement.GetString()
-            ?? throw new InvalidOperationException(
-                "Google ID token is empty.");
-    }
-
-    private static string ParseGoogleTokenError(
-        string body)
-    {
-        try
-        {
-            using JsonDocument document =
-                JsonDocument.Parse(body);
-
-            JsonElement root =
-                document.RootElement;
-
-            string error =
-                root.TryGetProperty(
-                    "error",
-                    out JsonElement errorElement)
-                    ? errorElement.GetString() ?? "unknown_error"
-                    : "unknown_error";
-
-            string description =
-                root.TryGetProperty(
-                    "error_description",
-                    out JsonElement descriptionElement)
-                    ? descriptionElement.GetString() ?? string.Empty
-                    : string.Empty;
-
-            return string.IsNullOrWhiteSpace(description)
-                ? error
-                : $"{error} - {description}";
-        }
-        catch
-        {
-            return "Google returned an unreadable token error.";
-        }
-    }
     private static async Task<string> ReadHttpRequestAsync(
         NetworkStream stream,
         CancellationToken cancellationToken)
     {
-        var buffer = new byte[8192];
+        var buffer =
+            new byte[8192];
 
         int read =
             await stream.ReadAsync(
@@ -274,10 +193,11 @@ public sealed class GoogleOAuthService
                 "Google OAuth callback was empty.");
         }
 
-        return Encoding.ASCII.GetString(
-            buffer,
-            0,
-            read);
+        return
+            Encoding.ASCII.GetString(
+                buffer,
+                0,
+                read);
     }
 
     private static CallbackRequest ParseCallbackRequest(
@@ -358,10 +278,12 @@ public sealed class GoogleOAuthService
                         pair[1].Replace("+", " "))
                     : string.Empty;
 
-            result[key] = value;
+            result[key] =
+                value;
         }
 
-        return result;
+        return
+            result;
     }
 
     private static async Task WriteHttpResponseAsync(
@@ -424,8 +346,9 @@ public sealed class GoogleOAuthService
             RandomNumberGenerator.GetBytes(
                 byteCount);
 
-        return Base64UrlEncode(
-            bytes);
+        return
+            Base64UrlEncode(
+                bytes);
     }
 
     private static string CreateCodeChallenge(
@@ -436,18 +359,20 @@ public sealed class GoogleOAuthService
                 Encoding.ASCII.GetBytes(
                     codeVerifier));
 
-        return Base64UrlEncode(
-            hash);
+        return
+            Base64UrlEncode(
+                hash);
     }
 
     private static string Base64UrlEncode(
         byte[] bytes)
     {
-        return Convert.ToBase64String(
-                bytes)
-            .TrimEnd('=')
-            .Replace('+', '-')
-            .Replace('/', '_');
+        return
+            Convert.ToBase64String(
+                    bytes)
+                .TrimEnd('=')
+                .Replace('+', '-')
+                .Replace('/', '_');
     }
 
     private sealed class CallbackRequest

@@ -58,14 +58,14 @@ public partial class AccountWindow : Window
                 await google.SignInAsync();
 
             StatusText.Text =
-                "Verifying Google account with Firebase...";
+                "Completing secure Google sign-in...";
 
-            var auth =
-                new FirebaseAuthService(config);
+            var googleBackend =
+                new GoogleBackendAuthService(config);
 
             AuthSession session =
-                await auth.SignInWithGoogleIdTokenAsync(
-                    googleResult.IdToken);
+                await googleBackend.ExchangeAsync(
+                    googleResult);
 
             await CompleteSecureSignInAsync(
                 config,
