@@ -35,11 +35,11 @@
     <Grid x:Name="FanDeck" MouseEnter="FanDeck_MouseEnter" MouseLeave="FanDeck_MouseLeave" HorizontalAlignment="Right" VerticalAlignment="Center" Width="46" Visibility="Collapsed" Opacity="0">
       <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center">
         <ScrollViewer x:Name="FanNotesScrollViewer" Height="410" Width="46" HorizontalAlignment="Right" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False" PanningMode="VerticalOnly" Focusable="False" PreviewMouseWheel="FanNotesScrollViewer_PreviewMouseWheel">
-          <ItemsControl x:Name="FanNotesList" HorizontalAlignment="Right" Width="46">
+          <ItemsControl x:Name="FanNotesList" HorizontalAlignment="Right" Width="46" Margin="0,12,0,0">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
                 <Border Width="46" Height="116" Margin="0,-12,0,0" CornerRadius="15,0,0,15" Background="{Binding Color, Converter={StaticResource NoteColorConverter}}" BorderBrush="#22000000" BorderThickness="1" Cursor="Hand" MouseEnter="FanNote_MouseEnter" MouseLeave="FanNote_MouseLeave">
-                  <Grid>
+                  <Grid IsHitTestVisible="False">
                     <Border Width="1" Height="88" Margin="0,0,6,0" HorizontalAlignment="Right" Background="#24000000" />
                     <TextBlock Text="{Binding Title}" FontSize="13.5" FontWeight="DemiBold" Foreground="{Binding Color, Converter={StaticResource NoteForegroundConverter}}" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Width="86" MaxWidth="86">
                       <TextBlock.LayoutTransform>
