@@ -201,7 +201,6 @@ public partial class MainWindow : Window
             "Left",
             StringComparison.OrdinalIgnoreCase);
 
-        // Rest strip
         RestPill.HorizontalAlignment = isLeft
             ? HorizontalAlignment.Left
             : HorizontalAlignment.Right;
@@ -210,7 +209,6 @@ public partial class MainWindow : Window
             ? new CornerRadius(0, 6, 6, 0)
             : new CornerRadius(6, 0, 0, 6);
 
-        // Fan
         FanDeck.HorizontalAlignment = isLeft
             ? HorizontalAlignment.Left
             : HorizontalAlignment.Right;
@@ -227,20 +225,24 @@ public partial class MainWindow : Window
             ? new Thickness(8, 12, 0, 0)
             : new Thickness(0, 12, 8, 0);
 
-        // Full editor columns MUST swap widths as well as content.
-        OpenState.ColumnDefinitions[0].Width = new GridLength(isLeft ? 94 : 320);
-        OpenState.ColumnDefinitions[1].Width = new GridLength(isLeft ? 320 : 94);
-
-        Grid.SetColumn(OpenDeckRail, isLeft ? 0 : 1);
-        Grid.SetColumn(OpenNoteCard, isLeft ? 1 : 0);
-
-        OpenDeckRail.HorizontalAlignment = isLeft
-            ? HorizontalAlignment.Right
-            : HorizontalAlignment.Right;
-
-        OpenNoteCard.HorizontalAlignment = isLeft
-            ? HorizontalAlignment.Left
-            : HorizontalAlignment.Right;
+        if (isLeft)
+        {
+            OpenState.ColumnDefinitions[0].Width = new GridLength(94);
+            OpenState.ColumnDefinitions[1].Width = new GridLength(320);
+            Grid.SetColumn(OpenDeckRail, 0);
+            Grid.SetColumn(OpenNoteCard, 1);
+            OpenDeckRail.HorizontalAlignment = HorizontalAlignment.Right;
+            OpenNoteCard.HorizontalAlignment = HorizontalAlignment.Left;
+        }
+        else
+        {
+            OpenState.ColumnDefinitions[0].Width = new GridLength(320);
+            OpenState.ColumnDefinitions[1].Width = new GridLength(94);
+            Grid.SetColumn(OpenNoteCard, 0);
+            Grid.SetColumn(OpenDeckRail, 1);
+            OpenNoteCard.HorizontalAlignment = HorizontalAlignment.Right;
+            OpenDeckRail.HorizontalAlignment = HorizontalAlignment.Right;
+        }
 
         PreviewCard.CornerRadius = isLeft
             ? new CornerRadius(0, 18, 18, 0)
@@ -266,18 +268,9 @@ public partial class MainWindow : Window
         {
             if (FanNotesList.ItemContainerGenerator.ContainerFromIndex(i)
                 is ContentPresenter presenter &&
-                VisualTreeHelper.GetChildrenCount(presenter) > 0)
+                FindFirstBorder(presenter) is Border fanBorder)
             {
-                var child = VisualTreeHelper.GetChild(presenter, 0);
-
-                if (child is Border border)
-                {
-                    border.CornerRadius = fanCorner;
-                }
-                else if (FindFirstBorder(child) is Border nestedBorder)
-                {
-                    nestedBorder.CornerRadius = fanCorner;
-                }
+                fanBorder.CornerRadius = fanCorner;
             }
         }
 
@@ -586,7 +579,7 @@ return new[]
                         "Left",
                         StringComparison.OrdinalIgnoreCase)
                         ? targetSize.Width
-                        : targetSize.Width - popupSize.Width,
+                        : -popupSize.Width,
                     yOffset),
                 PopupPrimaryAxis.Horizontal)
         };
@@ -1324,6 +1317,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 
