@@ -1,3 +1,5 @@
+using System;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -9,99 +11,159 @@ public sealed class AboutWindow : Window
     public AboutWindow()
     {
         Title = "About Bezel Sticky Notes";
-        Width = 380;
-        Height = 345;
+        Width = 440;
+        Height = 500;
         ResizeMode = ResizeMode.NoResize;
-        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        WindowStartupLocation =
+            WindowStartupLocation.CenterOwner;
         ShowInTaskbar = false;
-        Background = new System.Windows.Media.SolidColorBrush(
-            System.Windows.Media.Color.FromRgb(248, 249, 250));
-        Foreground = new System.Windows.Media.SolidColorBrush(
-            System.Windows.Media.Color.FromRgb(37, 40, 45));
-        FontFamily = new FontFamily("Segoe UI");
+        Background =
+            new SolidColorBrush(
+                Color.FromRgb(
+                    248,
+                    249,
+                    250));
+        Foreground =
+            new SolidColorBrush(
+                Color.FromRgb(
+                    37,
+                    40,
+                    45));
+        FontFamily =
+            new FontFamily("Segoe UI");
+
+        Version? version =
+            Assembly.GetExecutingAssembly()
+                .GetName()
+                .Version;
+
+        string versionText =
+            version is null
+                ? "Version unknown"
+                : $"Version {version.Major}.{version.Minor}.{version.Build}";
 
         var root =
-            new StackPanel
+            new Grid
             {
-                Margin = new Thickness(18)
+                Margin =
+                    new Thickness(18)
             };
 
-        root.Children.Add(
-            new TextBlock
+        root.RowDefinitions.Add(
+            new RowDefinition
             {
-                Text = "Bezel Sticky Notes",
-                FontSize = 22,
-                FontWeight = FontWeights.SemiBold,
-                Foreground = new System.Windows.Media.SolidColorBrush(
-                    System.Windows.Media.Color.FromRgb(32, 35, 40))
+                Height =
+                    GridLength.Auto
             });
 
-        root.Children.Add(
-            new TextBlock
+        root.RowDefinitions.Add(
+            new RowDefinition());
+
+        root.RowDefinitions.Add(
+            new RowDefinition
             {
-                Text = "Version 1.0.0",
-                FontSize = 13.5,
-                Margin = new Thickness(0, 4, 0, 0),
-                Foreground = new System.Windows.Media.SolidColorBrush(
-                    System.Windows.Media.Color.FromRgb(98, 104, 112))
+                Height =
+                    GridLength.Auto
             });
 
-        var descriptionBorder =
-            new Border
-            {
-                Margin = new Thickness(0, 14, 0, 0),
-                Padding = new Thickness(10),
-                CornerRadius = new CornerRadius(8),
-                Background = new System.Windows.Media.SolidColorBrush(
-                    System.Windows.Media.Color.FromRgb(238, 243, 248)),
-                BorderBrush = new System.Windows.Media.SolidColorBrush(
-                    System.Windows.Media.Color.FromRgb(217, 225, 232)),
-                BorderThickness = new Thickness(1)
-            };
+        var header =
+            new StackPanel();
 
-        descriptionBorder.Child =
+        header.Children.Add(
             new TextBlock
             {
                 Text =
-                    "A lightweight Windows sticky-notes app that keeps notes local by default and docks them neatly to the screen edge.",
-                TextWrapping = TextWrapping.Wrap,
-                FontSize = 13.2
-            };
-
-        root.Children.Add(descriptionBorder);
-
-        root.Children.Add(
-            new TextBlock
-            {
-                Text = "Privacy & data",
-                FontSize = 14.5,
-                FontWeight = FontWeights.SemiBold,
-                Margin = new Thickness(0, 13, 0, 0)
+                    "Bezel Sticky Notes",
+                FontSize = 21,
+                FontWeight =
+                    FontWeights.SemiBold
             });
 
-        root.Children.Add(
+        header.Children.Add(
             new TextBlock
             {
-                Text =
-                    "Your note content remains on this PC unless you explicitly enable your own cloud storage. Firebase is used for account, trial, entitlement, and subscription verification.",
-                TextWrapping = TextWrapping.Wrap,
+                Text = versionText,
                 FontSize = 13,
-                Margin = new Thickness(0, 4, 0, 0),
-                Foreground = new System.Windows.Media.SolidColorBrush(
-                    System.Windows.Media.Color.FromRgb(78, 85, 93))
+                Margin =
+                    new Thickness(
+                        0,
+                        3,
+                        0,
+                        0),
+                Foreground =
+                    new SolidColorBrush(
+                        Color.FromRgb(
+                            100,
+                            106,
+                            115))
             });
 
-        root.Children.Add(
-            new TextBlock
+        root.Children.Add(header);
+
+        var scroll =
+            new ScrollViewer
             {
-                Text =
-                    "Support, privacy-policy, and update links will be connected before Store release.",
-                TextWrapping = TextWrapping.Wrap,
-                FontSize = 12.5,
-                Margin = new Thickness(0, 12, 0, 0),
-                Foreground = new System.Windows.Media.SolidColorBrush(
-                    System.Windows.Media.Color.FromRgb(106, 112, 120))
-            });
+                VerticalScrollBarVisibility =
+                    ScrollBarVisibility.Auto,
+                Margin =
+                    new Thickness(
+                        0,
+                        14,
+                        0,
+                        10)
+            };
+
+        Grid.SetRow(
+            scroll,
+            1);
+
+        var body =
+            new StackPanel();
+
+        AddSection(
+            body,
+            "What it does",
+            "Bezel Sticky Notes keeps quick notes attached to the edge of your Windows desktop. Notes stay out of the way until you hover, preview, or open them for editing.");
+
+        AddSection(
+            body,
+            "Local notes",
+            "Your note title and content are stored locally on this PC. Bezel does not store your note content in Firebase.");
+
+        AddSection(
+            body,
+            "Account & trial",
+            "Your account is used to verify the 7-day trial and, later, your Premium subscription. Trial and entitlement status are verified by the secure backend rather than decided by the desktop app.");
+
+        AddSection(
+            body,
+            "Cloud sync",
+            "Google Drive and OneDrive sync are planned as optional features. When enabled, note data will sync only to storage you own. Cloud sync is not active yet.");
+
+        AddSection(
+            body,
+            "Premium",
+            "Premium checkout is not connected yet. The Go Premium button is present so the final subscription flow can be added without redesigning Settings.");
+
+        AddSection(
+            body,
+            "Startup",
+            "Bezel Sticky Notes can start automatically with Windows. This can be changed from Settings.");
+
+        AddSection(
+            body,
+            "Privacy",
+            "Firebase is used for account, trial, entitlement, installation, and subscription verification. Note content remains separate from that account backend.");
+
+        AddSection(
+            body,
+            "Support & updates",
+            "Support contact, privacy-policy link, release notes, and update checking will be connected before Store release.");
+
+        scroll.Content =
+            body;
+
+        root.Children.Add(scroll);
 
         var closeButton =
             new Button
@@ -109,16 +171,66 @@ public sealed class AboutWindow : Window
                 Content = "Close",
                 Width = 88,
                 Height = 34,
-                Margin = new Thickness(0, 14, 0, 0),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                Cursor = System.Windows.Input.Cursors.Hand
+                HorizontalAlignment =
+                    HorizontalAlignment.Right,
+                Cursor =
+                    System.Windows.Input.Cursors.Hand
             };
 
         closeButton.Click +=
             (_, _) => Close();
 
-        root.Children.Add(closeButton);
+        Grid.SetRow(
+            closeButton,
+            2);
 
-        Content = root;
+        root.Children.Add(
+            closeButton);
+
+        Content =
+            root;
+    }
+
+    private static void AddSection(
+        Panel parent,
+        string title,
+        string body)
+    {
+        parent.Children.Add(
+            new TextBlock
+            {
+                Text = title,
+                FontSize = 14.5,
+                FontWeight =
+                    FontWeights.SemiBold,
+                Margin =
+                    new Thickness(
+                        0,
+                        0,
+                        0,
+                        3)
+            });
+
+        parent.Children.Add(
+            new TextBlock
+            {
+                Text = body,
+                TextWrapping =
+                    TextWrapping.Wrap,
+                FontSize = 13,
+                LineHeight = 19,
+                Margin =
+                    new Thickness(
+                        0,
+                        0,
+                        0,
+                        13),
+                Foreground =
+                    new SolidColorBrush(
+                        Color.FromRgb(
+                            78,
+                            85,
+                            93))
+            });
     }
 }
