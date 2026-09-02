@@ -1,4 +1,4 @@
-﻿namespace StickyNotes.Core.Models;
+namespace StickyNotes.Core.Models;
 
 public sealed class FirebaseClientConfig
 {
@@ -7,6 +7,7 @@ public sealed class FirebaseClientConfig
     public string ApiKey { get; set; } = string.Empty;
     public string ProjectId { get; set; } = string.Empty;
     public string SecureApiBaseUrl { get; set; } = string.Empty;
+    public string GoogleOAuthClientId { get; set; } = string.Empty;
 
     public bool IsConfigured =>
         !string.IsNullOrWhiteSpace(ApiKey) &&
