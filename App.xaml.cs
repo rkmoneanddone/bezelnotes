@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using System;
+using System.Linq;
+using System.Windows;
 using StickyNotes.Storage;
 
 namespace StickyNotes;
@@ -11,5 +13,18 @@ public partial class App : Application
     {
         base.OnStartup(e);
         await NoteStore.InitializeAsync();
+
+        if (e.Args.Any(arg =>
+                string.Equals(
+                    arg,
+                    "--settings",
+                    StringComparison.OrdinalIgnoreCase)))
+        {
+            var settingsWindow = new SettingsWindow();
+            settingsWindow.Show();
+
+            settingsWindow.Closed += (_, _) => Shutdown();
+        }
     }
 }
+
