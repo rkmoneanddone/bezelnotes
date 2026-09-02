@@ -350,7 +350,10 @@ public partial class MainWindow : Window
                 is FrameworkElement container &&
                 container.IsMouseOver)
             {
-                BeginPreviewIntent(container);
+                if (ResolveFanTabBorderFromContainer(container) is Border fanTab)
+                {
+                    BeginPreviewIntent(fanTab);
+                }
                 break;
             }
         }
@@ -375,7 +378,10 @@ public partial class MainWindow : Window
                     is FrameworkElement container &&
                     container.IsMouseOver)
                 {
-                    BeginPreviewIntent(container);
+                    if (ResolveFanTabBorderFromContainer(container) is Border fanTab)
+                {
+                    BeginPreviewIntent(fanTab);
+                }
                     break;
                 }
             }
@@ -573,28 +579,72 @@ return new[]
         }
     }
 
+    private bool IsFanTabBorder(Border border)
+    {
+        if (border.DataContext is not Core.Models.Note)
+        {
+            return false;
+        }
+
+        if (Math.Abs(border.Width - 46) > 0.5 ||
+            Math.Abs(border.Height - 116) > 0.5)
+        {
+            return false;
+        }
+
+        DependencyObject? current = border;
+
+        while (current is not null)
+        {
+            if (ReferenceEquals(current, FanNotesList))
+            {
+                return true;
+            }
+
+            current = VisualTreeHelper.GetParent(current);
+        }
+
+        return false;
+    }
+
+    private Border? ResolveFanTabBorderFromContainer(DependencyObject root)
+    {
+        if (root is Border rootBorder && IsFanTabBorder(rootBorder))
+        {
+            return rootBorder;
+        }
+
+        int count = VisualTreeHelper.GetChildrenCount(root);
+
+        for (int i = 0; i < count; i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+
+            if (child is Border border && IsFanTabBorder(border))
+            {
+                return border;
+            }
+
+            var nested = ResolveFanTabBorderFromContainer(child);
+
+            if (nested is not null)
+            {
+                return nested;
+            }
+        }
+
+        return null;
+    }
+
     private FrameworkElement? FindHoveredFanTab()
     {
         DependencyObject? current = Mouse.DirectlyOver as DependencyObject;
 
         while (current is not null)
         {
-            if (current is FrameworkElement element &&
-                element.DataContext is Core.Models.Note &&
-                element.IsMouseOver)
+            if (current is Border border && IsFanTabBorder(border))
             {
-                // Ensure this visual actually belongs to FanNotesList.
-                DependencyObject? ancestor = current;
-
-                while (ancestor is not null)
-                {
-                    if (ReferenceEquals(ancestor, FanNotesList))
-                    {
-                        return element;
-                    }
-
-                    ancestor = VisualTreeHelper.GetParent(ancestor);
-                }
+                return border;
             }
 
             current = VisualTreeHelper.GetParent(current);
@@ -609,6 +659,7 @@ private void FanNote_MouseEnter(object sender, MouseEventArgs e)
         {
             return;
         }
+
         if (_state != DeckState.Fan || !_fanPreviewReady)
         {
             return;
@@ -616,23 +667,28 @@ private void FanNote_MouseEnter(object sender, MouseEventArgs e)
 
         _collapseTimer.Stop();
 
-        if (sender is FrameworkElement tab)
+        if (sender is Border fanTab && IsFanTabBorder(fanTab))
         {
-            BeginPreviewIntent(tab);
+            BeginPreviewIntent(fanTab);
         }
     }
 
     private void FanNote_MouseLeave(object sender, MouseEventArgs e)
     {
-        // Once this tab owns an open preview, hiding the tab naturally causes
-        // MouseLeave. That is not a real user exit and must be ignored.
-        if (PreviewPopup.IsOpen &&
-            ReferenceEquals(_previewedTab, sender))
+        if (sender is not Border fanTab || !IsFanTabBorder(fanTab))
         {
             return;
         }
 
-        if (ReferenceEquals(_previewIntentTab, sender))
+        // Hiding the preview owner raises MouseLeave by itself.
+        // Do not treat that as a real pointer exit.
+        if (PreviewPopup.IsOpen &&
+            ReferenceEquals(_previewedTab, fanTab))
+        {
+            return;
+        }
+
+        if (ReferenceEquals(_previewIntentTab, fanTab))
         {
             _previewIntentVersion++;
             _previewIntentTab = null;
@@ -1263,6 +1319,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 
