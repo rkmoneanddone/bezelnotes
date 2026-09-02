@@ -150,6 +150,7 @@ public partial class SettingsWindow : Window
     protected override void OnContentRendered(
         EventArgs e)
     {
+        _ = InitializeAccountAndStartupAsync();
         base.OnContentRendered(e);
 
         if (!string.IsNullOrWhiteSpace(_signedInEmail))
@@ -289,5 +290,227 @@ public partial class SettingsWindow : Window
                 yield return descendant;
             }
         }
+    }
+
+    private bool _accountStateReady;
+    private readonly SecureSessionService _secureSessionService = new();
+
+    private async Task RestoreSavedAccountStateAsync()
+    {
+        PersistedSession? persisted =
+            _secureSessionService.Load();
+
+        if (persisted == null)
+        {
+            ShowLoggedOutState();
+            return;
+        }
+
+        try
+        {
+            FirebaseClientConfig config =
+                new FirebaseClientConfigService().Load();
+
+            var auth =
+                new FirebaseAuthService(
+                    config);
+
+            AuthSession refreshed =
+                await auth.RefreshSessionAsync(
+                    persisted);
+
+            _secureSessionService.Save(
+                refreshed);
+
+            var backend =
+                new SecureBackendService(
+                    config);
+
+            BackendAccountState state =
+                await backend.BootstrapAccountAsync(
+                    refreshed);
+
+            ApplySignedInAccountState(
+                state.Email,
+                state.EntitlementState,
+                state.TrialDaysRemaining);
+        }
+        catch
+        {
+            _secureSessionService.Clear();
+            ShowLoggedOutState();
+        }
+    }
+
+    private void ShowLoggedOutState()
+    {
+        _signedInEmail = null;
+        _signedInEntitlementState = null;
+        _signedInTrialDaysRemaining = 0;
+
+        foreach (System.Windows.DependencyObject item
+                 in EnumerateVisualTree(this))
+        {
+            if (item is System.Windows.Controls.TextBlock textBlock)
+            {
+                string text =
+                    textBlock.Text ?? string.Empty;
+
+                if (text.StartsWith(
+                        "Signed in as ",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    textBlock.Text =
+                        "Trial starts when your account is activated.";
+                }
+                else if (
+                    text.Contains(
+                        "Trial active",
+                        StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains(
+                        "Subscription active",
+                        StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains(
+                        "grace",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    textBlock.Text =
+                        "Not started";
+                }
+            }
+            else if (item is System.Windows.Controls.Button button)
+            {
+                string content =
+                    button.Content?.ToString()
+                    ?? string.Empty;
+
+                if (content.Equals(
+                        "Logout",
+                        StringComparison.OrdinalIgnoreCase) ||
+                    content.Equals(
+                        "Account details",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    button.Content =
+                        "Sign in / Create account";
+
+                    button.Click -= LogoutButton_Click;
+                }
+            }
+        }
+    }
+
+    private void LogoutButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        _secureSessionService.Clear();
+        ShowLoggedOutState();
+    }
+
+    private void EnsureStartupEnabled()
+    {
+        try
+        {
+            using Microsoft.Win32.RegistryKey? runKey =
+                Microsoft.Win32.Registry.CurrentUser.OpenSubKey(
+                    @"Software\Microsoft\Windows\CurrentVersion\Run",
+                    writable: true);
+
+            string exePath =
+                Environment.ProcessPath
+                ?? System.Diagnostics.Process
+                    .GetCurrentProcess()
+                    .MainModule?
+                    .FileName
+                ?? string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(
+                    exePath))
+            {
+                runKey?.SetValue(
+                    "BezelStickyNotes",
+                    $"\"{exePath}\"");
+            }
+
+            foreach (System.Windows.DependencyObject item
+                     in EnumerateVisualTree(this))
+            {
+                if (item is System.Windows.Controls.CheckBox checkBox)
+                {
+                    string content =
+                        checkBox.Content?.ToString()
+                        ?? string.Empty;
+
+                    if (content.Contains(
+                            "Start StickyNotes with Windows",
+                            StringComparison.OrdinalIgnoreCase) ||
+                        content.Contains(
+                            "Start Bezel Sticky Notes with Windows",
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        checkBox.IsChecked =
+                            true;
+
+                        checkBox.Checked -=
+                            StartupCheckBox_Checked;
+
+                        checkBox.Unchecked -=
+                            StartupCheckBox_Unchecked;
+
+                        checkBox.Checked +=
+                            StartupCheckBox_Checked;
+
+                        checkBox.Unchecked +=
+                            StartupCheckBox_Unchecked;
+                    }
+                }
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    private void StartupCheckBox_Checked(
+        object sender,
+        RoutedEventArgs e)
+    {
+        EnsureStartupEnabled();
+    }
+
+    private void StartupCheckBox_Unchecked(
+        object sender,
+        RoutedEventArgs e)
+    {
+        try
+        {
+            using Microsoft.Win32.RegistryKey? runKey =
+                Microsoft.Win32.Registry.CurrentUser.OpenSubKey(
+                    @"Software\Microsoft\Windows\CurrentVersion\Run",
+                    writable: true);
+
+            runKey?.DeleteValue(
+                "BezelStickyNotes",
+                throwOnMissingValue: false);
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task InitializeAccountAndStartupAsync()
+    {
+        if (_accountStateReady)
+        {
+            return;
+        }
+
+        _accountStateReady =
+            true;
+
+        EnsureStartupEnabled();
+
+        await RestoreSavedAccountStateAsync();
     }
 }

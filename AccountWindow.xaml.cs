@@ -178,6 +178,8 @@ public partial class AccountWindow : Window
             await backend.BootstrapAccountAsync(
                 session);
 
+        new SecureSessionService().Save(session);
+
         EmailBox.Text =
             state.Email;
 

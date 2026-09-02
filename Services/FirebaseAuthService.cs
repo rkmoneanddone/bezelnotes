@@ -115,6 +115,97 @@ public sealed class FirebaseAuthService
                         expiresInSeconds - 60))
         };
     }
+    public async Task<AuthSession> RefreshSessionAsync(
+        PersistedSession persisted,
+        CancellationToken cancellationToken = default)
+    {
+        if (!_config.IsConfigured)
+        {
+            throw new InvalidOperationException(
+                "Firebase is not configured.");
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                persisted.RefreshToken))
+        {
+            throw new InvalidOperationException(
+                "Saved session is missing its refresh token.");
+        }
+
+        string url =
+            $"https://securetoken.googleapis.com/v1/token?key={Uri.EscapeDataString(_config.ApiKey)}";
+
+        using var content =
+            new FormUrlEncodedContent(
+                new Dictionary<string, string>
+                {
+                    ["grant_type"] = "refresh_token",
+                    ["refresh_token"] = persisted.RefreshToken
+                });
+
+        using HttpResponseMessage response =
+            await _httpClient.PostAsync(
+                url,
+                content,
+                cancellationToken);
+
+        string body =
+            await response.Content.ReadAsStringAsync(
+                cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new InvalidOperationException(
+                "Saved account session is no longer valid.");
+        }
+
+        using JsonDocument document =
+            JsonDocument.Parse(body);
+
+        JsonElement root =
+            document.RootElement;
+
+        int expiresInSeconds = 3600;
+
+        if (root.TryGetProperty(
+                "expires_in",
+                out JsonElement expiresElement))
+        {
+            int.TryParse(
+                expiresElement.GetString(),
+                out expiresInSeconds);
+        }
+
+        return new AuthSession
+        {
+            UserId =
+                root.TryGetProperty(
+                    "user_id",
+                    out JsonElement userElement)
+                    ? userElement.GetString()
+                      ?? persisted.UserId
+                    : persisted.UserId,
+
+            Email =
+                persisted.Email,
+
+            IdToken =
+                root.GetProperty(
+                    "id_token").GetString()
+                ?? string.Empty,
+
+            RefreshToken =
+                root.GetProperty(
+                    "refresh_token").GetString()
+                ?? persisted.RefreshToken,
+
+            ExpiresAtUtc =
+                DateTimeOffset.UtcNow.AddSeconds(
+                    Math.Max(
+                        60,
+                        expiresInSeconds - 60))
+        };
+    }
     private async Task<AuthSession> AuthenticateAsync(
         string operation,
         string email,
