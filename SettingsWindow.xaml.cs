@@ -38,7 +38,6 @@ public partial class SettingsWindow : Window
     {
         _settings = _settingsService.Load();
         StartWithWindowsCheckBox.IsChecked = _settings.StartWithWindows;
-        SelectComboValue(EdgeComboBox, _settings.Edge);
         SelectComboValue(DefaultColorComboBox, _settings.DefaultColor);
     }
 
@@ -75,7 +74,6 @@ public partial class SettingsWindow : Window
     private void SaveButton_Click(object sender, RoutedEventArgs e)
     {
         _settings.StartWithWindows = StartWithWindowsCheckBox.IsChecked == true;
-        _settings.Edge = GetComboValue(EdgeComboBox, "Right");
         _settings.DefaultColor = GetComboValue(DefaultColorComboBox, "Yellow");
 
         _settingsService.Save(_settings);
@@ -124,5 +122,6 @@ public partial class SettingsWindow : Window
         key.SetValue(valueName, $"\"{executablePath}\"");
     }
 }
+
 
 

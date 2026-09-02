@@ -196,57 +196,25 @@ public partial class MainWindow : Window
 
     private void ApplyEdgeLayout()
     {
-        bool isLeft = string.Equals(
-            _appSettings.Edge,
-            "Left",
-            StringComparison.OrdinalIgnoreCase);
+        RestPill.HorizontalAlignment = HorizontalAlignment.Right;
+        RestPill.CornerRadius = new CornerRadius(6, 0, 0, 6);
 
-        RestPill.HorizontalAlignment = isLeft
-            ? HorizontalAlignment.Left
-            : HorizontalAlignment.Right;
+        FanDeck.HorizontalAlignment = HorizontalAlignment.Right;
+        FanNotesList.HorizontalAlignment = HorizontalAlignment.Right;
 
-        RestPill.CornerRadius = isLeft
-            ? new CornerRadius(0, 6, 6, 0)
-            : new CornerRadius(6, 0, 0, 6);
+        AddButton.HorizontalAlignment = HorizontalAlignment.Right;
+        AddButton.Margin = new Thickness(0, 12, 8, 0);
 
-        FanDeck.HorizontalAlignment = isLeft
-            ? HorizontalAlignment.Left
-            : HorizontalAlignment.Right;
+        OpenState.ColumnDefinitions[0].Width = new GridLength(320);
+        OpenState.ColumnDefinitions[1].Width = new GridLength(94);
 
-        FanNotesList.HorizontalAlignment = isLeft
-            ? HorizontalAlignment.Left
-            : HorizontalAlignment.Right;
+        Grid.SetColumn(OpenNoteCard, 0);
+        Grid.SetColumn(OpenDeckRail, 1);
 
-        AddButton.HorizontalAlignment = isLeft
-            ? HorizontalAlignment.Left
-            : HorizontalAlignment.Right;
+        OpenNoteCard.HorizontalAlignment = HorizontalAlignment.Right;
+        OpenDeckRail.HorizontalAlignment = HorizontalAlignment.Right;
 
-        AddButton.Margin = isLeft
-            ? new Thickness(8, 12, 0, 0)
-            : new Thickness(0, 12, 8, 0);
-
-        if (isLeft)
-        {
-            OpenState.ColumnDefinitions[0].Width = new GridLength(94);
-            OpenState.ColumnDefinitions[1].Width = new GridLength(320);
-            Grid.SetColumn(OpenDeckRail, 0);
-            Grid.SetColumn(OpenNoteCard, 1);
-            OpenDeckRail.HorizontalAlignment = HorizontalAlignment.Right;
-            OpenNoteCard.HorizontalAlignment = HorizontalAlignment.Left;
-        }
-        else
-        {
-            OpenState.ColumnDefinitions[0].Width = new GridLength(320);
-            OpenState.ColumnDefinitions[1].Width = new GridLength(94);
-            Grid.SetColumn(OpenNoteCard, 0);
-            Grid.SetColumn(OpenDeckRail, 1);
-            OpenNoteCard.HorizontalAlignment = HorizontalAlignment.Right;
-            OpenDeckRail.HorizontalAlignment = HorizontalAlignment.Right;
-        }
-
-        PreviewCard.CornerRadius = isLeft
-            ? new CornerRadius(0, 18, 18, 0)
-            : new CornerRadius(18, 0, 0, 18);
+        PreviewCard.CornerRadius = new CornerRadius(18, 0, 0, 18);
 
         Dispatcher.BeginInvoke(
             DispatcherPriority.Loaded,
@@ -255,14 +223,7 @@ public partial class MainWindow : Window
 
     private void UpdateDynamicEdgeCorners()
     {
-        bool isLeft = string.Equals(
-            _appSettings.Edge,
-            "Left",
-            StringComparison.OrdinalIgnoreCase);
-
-        var fanCorner = isLeft
-            ? new CornerRadius(0, 15, 15, 0)
-            : new CornerRadius(15, 0, 0, 15);
+        var fanCorner = new CornerRadius(15, 0, 0, 15);
 
         for (int i = 0; i < FanNotesList.Items.Count; i++)
         {
@@ -274,9 +235,7 @@ public partial class MainWindow : Window
             }
         }
 
-        var openCorner = isLeft
-            ? new CornerRadius(0, 13, 13, 0)
-            : new CornerRadius(13, 0, 0, 13);
+        var openCorner = new CornerRadius(13, 0, 0, 13);
 
         for (int i = 0; i < OpenDeckList.Items.Count; i++)
         {
@@ -317,16 +276,8 @@ public partial class MainWindow : Window
         var work = SystemParameters.WorkArea;
 
         Width = width;
+        Left = work.Right - width;
         Top = work.Top + Math.Max(20, (work.Height - Height) / 2);
-
-        bool isLeft = string.Equals(
-            _appSettings.Edge,
-            "Left",
-            StringComparison.OrdinalIgnoreCase);
-
-        Left = isLeft
-            ? work.Left
-            : work.Right - width;
     }
 
     private void MoveToRestState(bool initial = false)
@@ -574,12 +525,7 @@ return new[]
         {
             new CustomPopupPlacement(
                 new Point(
-                    string.Equals(
-                        _appSettings.Edge,
-                        "Left",
-                        StringComparison.OrdinalIgnoreCase)
-                        ? targetSize.Width
-                        : -popupSize.Width,
+                    -popupSize.Width,
                     yOffset),
                 PopupPrimaryAxis.Horizontal)
         };
@@ -1317,6 +1263,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 

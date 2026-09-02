@@ -66,20 +66,6 @@
           <StackPanel>
             <TextBlock Text="General" FontSize="16" FontWeight="SemiBold" Foreground="#30343A" />
             <CheckBox x:Name="StartWithWindowsCheckBox" Content="Start StickyNotes with Windows" Margin="0,14,0,0" />
-            <Grid Margin="0,16,0,0">
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="190" />
-              </Grid.ColumnDefinitions>
-              <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="Screen edge" FontSize="14" FontWeight="SemiBold" />
-                <TextBlock Text="Where StickyNotes rests" FontSize="12.5" Foreground="#777C84" />
-              </StackPanel>
-              <ComboBox x:Name="EdgeComboBox" Grid.Column="1" SelectedIndex="0">
-                <ComboBoxItem xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" Content="Right" />
-                <ComboBoxItem xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" Content="Left" />
-              </ComboBox>
-            </Grid>
             <Grid Margin="0,14,0,0">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
