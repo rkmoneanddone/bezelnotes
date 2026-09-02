@@ -28,6 +28,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _fanHoverTimer;
 
     private Note? _currentNote;
+    private SettingsWindow? _settingsWindow;
     private Note? _pendingDeleteNote;
     private bool _loadingEditor;
     private DeckState _state = DeckState.Rest;
@@ -1116,12 +1117,24 @@ private void ClosePreviewImmediately()
     {
         ClosePreviewImmediately();
 
-        var window = new SettingsWindow
+        if (_settingsWindow is not null)
         {
-            Owner = this
-        };
+            if (_settingsWindow.WindowState == WindowState.Minimized)
+            {
+                _settingsWindow.WindowState = WindowState.Normal;
+            }
 
-        window.ShowDialog();
+            _settingsWindow.Activate();
+            _settingsWindow.Topmost = true;
+            _settingsWindow.Topmost = false;
+            _settingsWindow.Focus();
+            return;
+        }
+
+        _settingsWindow = new SettingsWindow();
+        _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+        _settingsWindow.Show();
+        _settingsWindow.Activate();
     }
 
     private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
@@ -1151,6 +1164,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 

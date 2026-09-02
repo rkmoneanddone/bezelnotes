@@ -14,17 +14,28 @@ public partial class App : Application
         base.OnStartup(e);
         await NoteStore.InitializeAsync();
 
-        if (e.Args.Any(arg =>
-                string.Equals(
-                    arg,
-                    "--settings",
-                    StringComparison.OrdinalIgnoreCase)))
-        {
-            var settingsWindow = new SettingsWindow();
-            settingsWindow.Show();
+        bool settingsOnly = e.Args.Any(arg =>
+            string.Equals(
+                arg,
+                "--settings",
+                StringComparison.OrdinalIgnoreCase));
 
-            settingsWindow.Closed += (_, _) => Shutdown();
+        if (settingsOnly)
+        {
+            ShutdownMode = ShutdownMode.OnMainWindowClose;
+
+            var settingsWindow = new SettingsWindow();
+            MainWindow = settingsWindow;
+            settingsWindow.Show();
+            return;
         }
+
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+        var mainWindow = new MainWindow();
+        MainWindow = mainWindow;
+        mainWindow.Show();
     }
 }
+
 
