@@ -153,6 +153,7 @@ public partial class SettingsWindow : Window
         EventArgs e)
     {
         _ = ApplyCompactAccountSettingsRuntimeFix();
+        ApplySettingsPremiumAndAboutEnhancements();
         _ = InitializeAccountAndStartupAsync();
         base.OnContentRendered(e);
 
@@ -751,5 +752,222 @@ public partial class SettingsWindow : Window
                     new Thickness(1);
             }
         }
+    }
+
+    private bool _settingsPremiumAndAboutEnhanced;
+
+    private void ApplySettingsPremiumAndAboutEnhancements()
+    {
+        if (_settingsPremiumAndAboutEnhanced)
+        {
+            return;
+        }
+
+        _settingsPremiumAndAboutEnhanced = true;
+
+        Width = 500;
+        MinWidth = 500;
+        MaxWidth = 500;
+
+        ReplaceAboutCardWithCompactButton();
+        AddPremiumButtonToAccountCard();
+    }
+
+    private Border? FindSectionCard(
+        string sectionTitle)
+    {
+        foreach (DependencyObject item
+                 in EnumerateVisualTree(this))
+        {
+            if (item is not TextBlock textBlock)
+            {
+                continue;
+            }
+
+            if (!string.Equals(
+                    textBlock.Text,
+                    sectionTitle,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            DependencyObject? current =
+                textBlock;
+
+            while (current != null)
+            {
+                if (current is Border border)
+                {
+                    return border;
+                }
+
+                current =
+                    System.Windows.Media.VisualTreeHelper.GetParent(
+                        current);
+            }
+        }
+
+        return null;
+    }
+
+    private void ReplaceAboutCardWithCompactButton()
+    {
+        Border? aboutCard =
+            FindSectionCard("About");
+
+        if (aboutCard == null)
+        {
+            return;
+        }
+
+        var grid =
+            new Grid
+            {
+                Margin =
+                    new Thickness(
+                        2,
+                        0,
+                        2,
+                        0)
+            };
+
+        grid.ColumnDefinitions.Add(
+            new ColumnDefinition());
+
+        grid.ColumnDefinitions.Add(
+            new ColumnDefinition
+            {
+                Width = GridLength.Auto
+            });
+
+        var title =
+            new TextBlock
+            {
+                Text = "About",
+                FontSize = 15.5,
+                FontWeight =
+                    FontWeights.SemiBold,
+                VerticalAlignment =
+                    VerticalAlignment.Center
+            };
+
+        var button =
+            new Button
+            {
+                Content = "View details",
+                Width = 96,
+                Height = 32,
+                Cursor =
+                    System.Windows.Input.Cursors.Hand
+            };
+
+        button.Click +=
+            AboutDetailsButton_Click;
+
+        Grid.SetColumn(
+            button,
+            1);
+
+        grid.Children.Add(title);
+        grid.Children.Add(button);
+
+        aboutCard.Padding =
+            new Thickness(
+                9,
+                7,
+                9,
+                7);
+
+        aboutCard.Child =
+            grid;
+    }
+
+    private void AboutDetailsButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        var window =
+            new AboutWindow
+            {
+                Owner = this
+            };
+
+        window.ShowDialog();
+    }
+
+    private void AddPremiumButtonToAccountCard()
+    {
+        Border? accountCard =
+            FindSectionCard(
+                "Account & Plan");
+
+        if (accountCard?.Child
+            is not Panel panel)
+        {
+            return;
+        }
+
+        foreach (UIElement child
+                 in panel.Children)
+        {
+            if (child is Button existing &&
+                string.Equals(
+                    existing.Content?.ToString(),
+                    "Go Premium",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+        }
+
+        var button =
+            new Button
+            {
+                Content = "Go Premium",
+                Width = 108,
+                Height = 34,
+                Cursor =
+                    System.Windows.Input.Cursors.Hand,
+                Margin =
+                    new Thickness(
+                        0,
+                        7,
+                        0,
+                        0),
+                HorizontalAlignment =
+                    HorizontalAlignment.Left,
+                Background =
+                    new System.Windows.Media.SolidColorBrush(
+                        System.Windows.Media.Color.FromRgb(
+                            32,
+                            35,
+                            40)),
+                Foreground =
+                    System.Windows.Media.Brushes.White,
+                BorderBrush =
+                    new System.Windows.Media.SolidColorBrush(
+                        System.Windows.Media.Color.FromRgb(
+                            32,
+                            35,
+                            40))
+            };
+
+        button.Click +=
+            PremiumButton_Click;
+
+        panel.Children.Add(button);
+    }
+
+    private void PremiumButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        MessageBox.Show(
+            this,
+            "Premium checkout will be connected after the remaining app features are complete. Your current trial remains active.",
+            "Bezel Sticky Notes Premium",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
     }
 }
