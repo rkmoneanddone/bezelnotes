@@ -123,6 +123,12 @@ public partial class SettingsWindow : Window
     }
     private void AccountButton_Click(object sender, RoutedEventArgs e)
     {
+        if (_secureSessionService.HasSavedSession)
+        {
+            LogoutButton_Click(sender, e);
+            return;
+        }
+
         var window = new AccountWindow
         {
             Owner = this
@@ -145,6 +151,7 @@ public partial class SettingsWindow : Window
         _signedInTrialDaysRemaining = trialDaysRemaining;
 
         ApplyAccountStateToVisualTree();
+        MakeTrialBadgeProminent();
     }
 
     protected override void OnContentRendered(
@@ -156,6 +163,7 @@ public partial class SettingsWindow : Window
         if (!string.IsNullOrWhiteSpace(_signedInEmail))
         {
             ApplyAccountStateToVisualTree();
+        MakeTrialBadgeProminent();
         }
     }
 
@@ -256,7 +264,7 @@ public partial class SettingsWindow : Window
                         StringComparison.OrdinalIgnoreCase))
                 {
                     button.Content =
-                        "Account details";
+                        "Logout";
                 }
             }
         }
@@ -388,7 +396,7 @@ public partial class SettingsWindow : Window
                         "Logout",
                         StringComparison.OrdinalIgnoreCase) ||
                     content.Equals(
-                        "Account details",
+                        "Logout",
                         StringComparison.OrdinalIgnoreCase))
                 {
                     button.Content =
@@ -512,5 +520,68 @@ public partial class SettingsWindow : Window
         EnsureStartupEnabled();
 
         await RestoreSavedAccountStateAsync();
+    }
+
+    private void MakeTrialBadgeProminent()
+    {
+        foreach (System.Windows.DependencyObject item
+                 in EnumerateVisualTree(this))
+        {
+            if (item is System.Windows.Controls.TextBlock textBlock)
+            {
+                string text =
+                    textBlock.Text ?? string.Empty;
+
+                if (text.Contains(
+                        "Trial active",
+                        StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains(
+                        "Subscription active",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    textBlock.FontSize = 15.5;
+                    textBlock.FontWeight =
+                        System.Windows.FontWeights.SemiBold;
+
+                    textBlock.Foreground =
+                        new System.Windows.Media.SolidColorBrush(
+                            System.Windows.Media.Color.FromRgb(
+                                22,
+                                101,
+                                52));
+
+                    if (textBlock.Parent
+                        is System.Windows.Controls.Border border)
+                    {
+                        border.Padding =
+                            new System.Windows.Thickness(
+                                12,
+                                7,
+                                12,
+                                7);
+
+                        border.CornerRadius =
+                            new System.Windows.CornerRadius(10);
+
+                        border.Background =
+                            new System.Windows.Media.SolidColorBrush(
+                                System.Windows.Media.Color.FromRgb(
+                                    220,
+                                    252,
+                                    231));
+
+                        border.BorderBrush =
+                            new System.Windows.Media.SolidColorBrush(
+                                System.Windows.Media.Color.FromRgb(
+                                    134,
+                                    239,
+                                    172));
+
+                        border.BorderThickness =
+                            new System.Windows.Thickness(1);
+                    }
+                }
+            }
+        }
     }
 }
