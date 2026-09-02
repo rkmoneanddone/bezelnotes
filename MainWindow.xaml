@@ -63,7 +63,6 @@
           </Button.Template>
           <Button.ContextMenu>
             <ContextMenu>
-              <MenuItem xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" Header="Settings" Cursor="Hand" Click="SettingsMenuItem_Click" />
               <MenuItem Header="Exit StickyNotes" Click="ExitMenuItem_Click" />
             </ContextMenu>
           </Button.ContextMenu>

@@ -926,11 +926,16 @@ private void ClosePreviewImmediately()
 
     private async void AddButton_Click(object sender, RoutedEventArgs e)
     {
+        var settings = new StickyNotes.Services.SettingsService().Load();
+        var defaultColor = string.IsNullOrWhiteSpace(settings.DefaultColor)
+            ? "Yellow"
+            : settings.DefaultColor;
+
         var note = new Note
         {
             Title = "New Note",
             Content = string.Empty,
-            Color = "Yellow",
+            Color = defaultColor,
             SortOrder = _notes.Count
         };
 
@@ -1146,6 +1151,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 
