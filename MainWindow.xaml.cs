@@ -201,6 +201,7 @@ public partial class MainWindow : Window
             "Left",
             StringComparison.OrdinalIgnoreCase);
 
+        // Rest strip
         RestPill.HorizontalAlignment = isLeft
             ? HorizontalAlignment.Left
             : HorizontalAlignment.Right;
@@ -209,6 +210,7 @@ public partial class MainWindow : Window
             ? new CornerRadius(0, 6, 6, 0)
             : new CornerRadius(6, 0, 0, 6);
 
+        // Fan
         FanDeck.HorizontalAlignment = isLeft
             ? HorizontalAlignment.Left
             : HorizontalAlignment.Right;
@@ -225,20 +227,20 @@ public partial class MainWindow : Window
             ? new Thickness(8, 12, 0, 0)
             : new Thickness(0, 12, 8, 0);
 
-        Grid.SetColumn(OpenNoteCard, isLeft ? 1 : 0);
+        // Full editor columns MUST swap widths as well as content.
+        OpenState.ColumnDefinitions[0].Width = new GridLength(isLeft ? 94 : 320);
+        OpenState.ColumnDefinitions[1].Width = new GridLength(isLeft ? 320 : 94);
+
         Grid.SetColumn(OpenDeckRail, isLeft ? 0 : 1);
+        Grid.SetColumn(OpenNoteCard, isLeft ? 1 : 0);
+
+        OpenDeckRail.HorizontalAlignment = isLeft
+            ? HorizontalAlignment.Right
+            : HorizontalAlignment.Right;
 
         OpenNoteCard.HorizontalAlignment = isLeft
             ? HorizontalAlignment.Left
             : HorizontalAlignment.Right;
-
-        OpenDeckRail.HorizontalAlignment = isLeft
-            ? HorizontalAlignment.Left
-            : HorizontalAlignment.Right;
-
-        OpenDeckRail.CornerRadius = isLeft
-            ? new CornerRadius(0, 13, 13, 0)
-            : new CornerRadius(13, 0, 0, 13);
 
         PreviewCard.CornerRadius = isLeft
             ? new CornerRadius(0, 18, 18, 0)
@@ -1322,6 +1324,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 
