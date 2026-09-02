@@ -145,11 +145,14 @@ public partial class SettingsWindow : Window
         _signedInTrialDaysRemaining = trialDaysRemaining;
 
         ApplyAccountStateToVisualTree();
+        RefreshAccountActionButton();
+        EmphasizeTrialStatus();
     }
 
     protected override void OnContentRendered(
         EventArgs e)
     {
+        _ = ApplyCompactAccountSettingsRuntimeFix();
         _ = InitializeAccountAndStartupAsync();
         base.OnContentRendered(e);
 
@@ -512,5 +515,241 @@ public partial class SettingsWindow : Window
         EnsureStartupEnabled();
 
         await RestoreSavedAccountStateAsync();
+    }
+
+    private bool _compactAccountSettingsRuntimeFixApplied;
+
+    private async Task ApplyCompactAccountSettingsRuntimeFix()
+    {
+        if (_compactAccountSettingsRuntimeFixApplied)
+        {
+            return;
+        }
+
+        _compactAccountSettingsRuntimeFixApplied = true;
+
+        // Keep this utility window genuinely compact.
+        Width = 430;
+        MinWidth = 430;
+        MaxWidth = 430;
+        Height = 590;
+        ResizeMode = ResizeMode.NoResize;
+
+        await Dispatcher.InvokeAsync(
+            () =>
+            {
+                CompactSettingsVisualTree();
+                RefreshAccountActionButton();
+                EmphasizeTrialStatus();
+            });
+    }
+
+    private void CompactSettingsVisualTree()
+    {
+        foreach (DependencyObject item
+                 in EnumerateVisualTree(this))
+        {
+            if (item is Border border)
+            {
+                Thickness p = border.Padding;
+
+                double horizontal =
+                    Math.Min(
+                        Math.Max(p.Left, p.Right),
+                        10);
+
+                double vertical =
+                    Math.Min(
+                        Math.Max(p.Top, p.Bottom),
+                        8);
+
+                border.Padding =
+                    new Thickness(
+                        horizontal,
+                        vertical,
+                        horizontal,
+                        vertical);
+
+                Thickness m = border.Margin;
+
+                border.Margin =
+                    new Thickness(
+                        Math.Min(m.Left, 8),
+                        Math.Min(m.Top, 7),
+                        Math.Min(m.Right, 8),
+                        Math.Min(m.Bottom, 7));
+            }
+            else if (item is StackPanel stack)
+            {
+                Thickness m = stack.Margin;
+
+                stack.Margin =
+                    new Thickness(
+                        Math.Min(m.Left, 8),
+                        Math.Min(m.Top, 6),
+                        Math.Min(m.Right, 8),
+                        Math.Min(m.Bottom, 6));
+            }
+            else if (item is Grid grid)
+            {
+                Thickness m = grid.Margin;
+
+                grid.Margin =
+                    new Thickness(
+                        Math.Min(m.Left, 8),
+                        Math.Min(m.Top, 6),
+                        Math.Min(m.Right, 8),
+                        Math.Min(m.Bottom, 6));
+            }
+        }
+    }
+
+    private Button? FindAccountActionButton()
+    {
+        foreach (DependencyObject item
+                 in EnumerateVisualTree(this))
+        {
+            if (item is not Button button)
+            {
+                continue;
+            }
+
+            string text =
+                button.Content?.ToString()
+                ?? string.Empty;
+
+            if (text.Equals(
+                    "Account details",
+                    StringComparison.OrdinalIgnoreCase) ||
+                text.Equals(
+                    "Logout",
+                    StringComparison.OrdinalIgnoreCase) ||
+                text.Contains(
+                    "Sign in / Create account",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return button;
+            }
+        }
+
+        return null;
+    }
+
+    private void RefreshAccountActionButton()
+    {
+        Button? button =
+            FindAccountActionButton();
+
+        if (button == null)
+        {
+            return;
+        }
+
+        button.PreviewMouseLeftButtonDown -=
+            AccountActionButton_PreviewMouseLeftButtonDown;
+
+        if (_secureSessionService.HasSavedSession)
+        {
+            button.Content = "Logout";
+
+            button.PreviewMouseLeftButtonDown +=
+                AccountActionButton_PreviewMouseLeftButtonDown;
+        }
+        else
+        {
+            button.Content =
+                "Sign in / Create account";
+        }
+    }
+
+    private void AccountActionButton_PreviewMouseLeftButtonDown(
+        object sender,
+        System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (!_secureSessionService.HasSavedSession)
+        {
+            return;
+        }
+
+        // Stop the older login Click handler from running.
+        e.Handled = true;
+
+        _secureSessionService.Clear();
+
+        ShowLoggedOutState();
+
+        RefreshAccountActionButton();
+    }
+
+    private void EmphasizeTrialStatus()
+    {
+        foreach (DependencyObject item
+                 in EnumerateVisualTree(this))
+        {
+            if (item is not TextBlock textBlock)
+            {
+                continue;
+            }
+
+            string text =
+                textBlock.Text
+                ?? string.Empty;
+
+            if (!text.Contains(
+                    "Trial active",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            textBlock.FontSize = 16;
+            textBlock.FontWeight =
+                FontWeights.SemiBold;
+
+            textBlock.Foreground =
+                new System.Windows.Media.SolidColorBrush(
+                    System.Windows.Media.Color.FromRgb(
+                        18,
+                        96,
+                        49));
+
+            textBlock.Margin =
+                new Thickness(
+                    4,
+                    2,
+                    4,
+                    2);
+
+            if (textBlock.Parent
+                is Border badge)
+            {
+                badge.Padding =
+                    new Thickness(
+                        12,
+                        7,
+                        12,
+                        7);
+
+                badge.CornerRadius =
+                    new CornerRadius(11);
+
+                badge.Background =
+                    new System.Windows.Media.SolidColorBrush(
+                        System.Windows.Media.Color.FromRgb(
+                            220,
+                            252,
+                            231));
+
+                badge.BorderBrush =
+                    new System.Windows.Media.SolidColorBrush(
+                        System.Windows.Media.Color.FromRgb(
+                            134,
+                            239,
+                            172));
+
+                badge.BorderThickness =
+                    new Thickness(1);
+            }
+        }
     }
 }
