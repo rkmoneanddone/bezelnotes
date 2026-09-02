@@ -200,6 +200,14 @@ public partial class AccountWindow : Window
                     $"Signed in as {state.Email}. Account verified."
             };
 
+        if (Owner is SettingsWindow settingsWindow)
+        {
+            settingsWindow.ApplySignedInAccountState(
+                state.Email,
+                state.EntitlementState,
+                state.TrialDaysRemaining);
+        }
+
         await CloseAfterSuccessfulSignInAsync();
     }
 
@@ -219,7 +227,7 @@ public partial class AccountWindow : Window
                     213,
                     177));
 
-        await Task.Delay(900);
+        await Task.Delay(550);
 
         DialogResult = true;
         Close();

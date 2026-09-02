@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using System;
 using System.Linq;
 using System.Reflection;
@@ -130,9 +130,164 @@ public partial class SettingsWindow : Window
 
         window.ShowDialog();
     }
+
+    private static string? _signedInEmail;
+    private static string? _signedInEntitlementState;
+    private static int _signedInTrialDaysRemaining;
+
+    public void ApplySignedInAccountState(
+        string email,
+        string entitlementState,
+        int trialDaysRemaining)
+    {
+        _signedInEmail = email;
+        _signedInEntitlementState = entitlementState;
+        _signedInTrialDaysRemaining = trialDaysRemaining;
+
+        ApplyAccountStateToVisualTree();
+    }
+
+    protected override void OnContentRendered(
+        EventArgs e)
+    {
+        base.OnContentRendered(e);
+
+        if (!string.IsNullOrWhiteSpace(_signedInEmail))
+        {
+            ApplyAccountStateToVisualTree();
+        }
+    }
+
+    private void ApplyAccountStateToVisualTree()
+    {
+        if (string.IsNullOrWhiteSpace(_signedInEmail))
+        {
+            return;
+        }
+
+        string statusText =
+            _signedInEntitlementState switch
+            {
+                "trial" =>
+                    $"Trial active - {_signedInTrialDaysRemaining} day(s) remaining",
+
+                "active" =>
+                    "Subscription active",
+
+                "grace" =>
+                    "Subscription grace period",
+
+                "expired" =>
+                    "Trial or subscription expired",
+
+                _ =>
+                    "Account verified"
+            };
+
+        foreach (System.Windows.DependencyObject item
+                 in EnumerateVisualTree(this))
+        {
+            if (item is System.Windows.Controls.TextBlock textBlock)
+            {
+                string text =
+                    textBlock.Text ?? string.Empty;
+
+                if (text.Contains(
+                        "Trial starts when your account is activated.",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    textBlock.Text =
+                        $"Signed in as {_signedInEmail}";
+
+                    textBlock.Foreground =
+                        new System.Windows.Media.SolidColorBrush(
+                            System.Windows.Media.Color.FromRgb(
+                                55,
+                                65,
+                                70));
+                }
+                else if (text.Equals(
+                             "Not started",
+                             StringComparison.OrdinalIgnoreCase) ||
+                         text.Contains(
+                             "day(s) remaining",
+                             StringComparison.OrdinalIgnoreCase) ||
+                         text.Equals(
+                             "Subscription active",
+                             StringComparison.OrdinalIgnoreCase))
+                {
+                    textBlock.Text =
+                        statusText;
+
+                    textBlock.Foreground =
+                        new System.Windows.Media.SolidColorBrush(
+                            System.Windows.Media.Color.FromRgb(
+                                31,
+                                92,
+                                52));
+
+                    if (textBlock.Parent
+                        is System.Windows.Controls.Border parentBorder)
+                    {
+                        parentBorder.Background =
+                            new System.Windows.Media.SolidColorBrush(
+                                System.Windows.Media.Color.FromRgb(
+                                    229,
+                                    245,
+                                    234));
+
+                        parentBorder.BorderBrush =
+                            new System.Windows.Media.SolidColorBrush(
+                                System.Windows.Media.Color.FromRgb(
+                                    176,
+                                    216,
+                                    187));
+                    }
+                }
+            }
+            else if (item is System.Windows.Controls.Button button)
+            {
+                string content =
+                    button.Content?.ToString() ?? string.Empty;
+
+                if (content.Contains(
+                        "Sign in / Create account",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    button.Content =
+                        "Account details";
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<System.Windows.DependencyObject>
+        EnumerateVisualTree(
+            System.Windows.DependencyObject root)
+    {
+        if (root == null)
+        {
+            yield break;
+        }
+
+        int count =
+            System.Windows.Media.VisualTreeHelper.GetChildrenCount(
+                root);
+
+        for (int i = 0; i < count; i++)
+        {
+            System.Windows.DependencyObject child =
+                System.Windows.Media.VisualTreeHelper.GetChild(
+                    root,
+                    i);
+
+            yield return child;
+
+            foreach (System.Windows.DependencyObject descendant
+                     in EnumerateVisualTree(child))
+            {
+                yield return descendant;
+            }
+        }
+    }
 }
-
-
-
-
-
