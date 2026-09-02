@@ -1,16 +1,13 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-
     <!-- Explicit XAML resource wiring to avoid WPF resource discovery issues -->
     <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
     <EnableDefaultPageItems>false</EnableDefaultPageItems>
-
     <!-- Keep generated/build/backup files out of SDK wildcard discovery -->
     <DefaultItemExcludes>
       $(DefaultItemExcludes);
@@ -22,14 +19,12 @@
       *.resourcefix_*
     </DefaultItemExcludes>
   </PropertyGroup>
-
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml" />
     <Page Include="MainWindow.xaml" />
+    <Page Include="SettingsWindow.xaml" />
   </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.11" />
   </ItemGroup>
-
 </Project>

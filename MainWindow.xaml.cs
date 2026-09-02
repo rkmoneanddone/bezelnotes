@@ -1107,6 +1107,18 @@ private void ClosePreviewImmediately()
         OpenNoteCard.Opacity = 1;
     }
 
+    private void SettingsMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        ClosePreviewImmediately();
+
+        var window = new SettingsWindow
+        {
+            Owner = this
+        };
+
+        window.ShowDialog();
+    }
+
     private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
     {
         Application.Current.Shutdown();
@@ -1134,6 +1146,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 
