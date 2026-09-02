@@ -121,7 +121,17 @@ public partial class SettingsWindow : Window
 
         key.SetValue(valueName, $"\"{executablePath}\"");
     }
+    private void AccountButton_Click(object sender, RoutedEventArgs e)
+    {
+        var window = new AccountWindow
+        {
+            Owner = this
+        };
+
+        window.ShowDialog();
+    }
 }
+
 
 
 

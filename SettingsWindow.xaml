@@ -75,7 +75,7 @@
                 <TextBlock Text="Not started" FontSize="13.5" Foreground="#34373C" FontWeight="Normal" />
               </Border>
             </Grid>
-            <Button Content="Sign in / Create account" Margin="0,16,0,0" HorizontalAlignment="Left" IsEnabled="False" ToolTip="Firebase account connection is the next backend phase" />
+            <Button Content="Sign in / Create account" Margin="0,16,0,0" HorizontalAlignment="Left" IsEnabled="True" Cursor="Hand" Click="AccountButton_Click" />
           </StackPanel>
         </Border>
         <Border Style="{StaticResource SectionCard}">
