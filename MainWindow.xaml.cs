@@ -224,6 +224,97 @@ public partial class MainWindow : Window
         AddButton.Margin = isLeft
             ? new Thickness(8, 12, 0, 0)
             : new Thickness(0, 12, 8, 0);
+
+        Grid.SetColumn(OpenNoteCard, isLeft ? 1 : 0);
+        Grid.SetColumn(OpenDeckRail, isLeft ? 0 : 1);
+
+        OpenNoteCard.HorizontalAlignment = isLeft
+            ? HorizontalAlignment.Left
+            : HorizontalAlignment.Right;
+
+        OpenDeckRail.HorizontalAlignment = isLeft
+            ? HorizontalAlignment.Left
+            : HorizontalAlignment.Right;
+
+        OpenDeckRail.CornerRadius = isLeft
+            ? new CornerRadius(0, 13, 13, 0)
+            : new CornerRadius(13, 0, 0, 13);
+
+        PreviewCard.CornerRadius = isLeft
+            ? new CornerRadius(0, 18, 18, 0)
+            : new CornerRadius(18, 0, 0, 18);
+
+        Dispatcher.BeginInvoke(
+            DispatcherPriority.Loaded,
+            new Action(UpdateDynamicEdgeCorners));
+    }
+
+    private void UpdateDynamicEdgeCorners()
+    {
+        bool isLeft = string.Equals(
+            _appSettings.Edge,
+            "Left",
+            StringComparison.OrdinalIgnoreCase);
+
+        var fanCorner = isLeft
+            ? new CornerRadius(0, 15, 15, 0)
+            : new CornerRadius(15, 0, 0, 15);
+
+        for (int i = 0; i < FanNotesList.Items.Count; i++)
+        {
+            if (FanNotesList.ItemContainerGenerator.ContainerFromIndex(i)
+                is ContentPresenter presenter &&
+                VisualTreeHelper.GetChildrenCount(presenter) > 0)
+            {
+                var child = VisualTreeHelper.GetChild(presenter, 0);
+
+                if (child is Border border)
+                {
+                    border.CornerRadius = fanCorner;
+                }
+                else if (FindFirstBorder(child) is Border nestedBorder)
+                {
+                    nestedBorder.CornerRadius = fanCorner;
+                }
+            }
+        }
+
+        var openCorner = isLeft
+            ? new CornerRadius(0, 13, 13, 0)
+            : new CornerRadius(13, 0, 0, 13);
+
+        for (int i = 0; i < OpenDeckList.Items.Count; i++)
+        {
+            if (OpenDeckList.ItemContainerGenerator.ContainerFromIndex(i)
+                is ListBoxItem item &&
+                FindFirstBorder(item) is Border border)
+            {
+                border.CornerRadius = openCorner;
+            }
+        }
+    }
+
+    private static Border? FindFirstBorder(DependencyObject root)
+    {
+        int count = VisualTreeHelper.GetChildrenCount(root);
+
+        for (int i = 0; i < count; i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+
+            if (child is Border border)
+            {
+                return border;
+            }
+
+            var nested = FindFirstBorder(child);
+            if (nested is not null)
+            {
+                return nested;
+            }
+        }
+
+        return null;
     }
 
     private void PositionWindowForWidth(double width)
@@ -233,16 +324,14 @@ public partial class MainWindow : Window
         Width = width;
         Top = work.Top + Math.Max(20, (work.Height - Height) / 2);
 
-        if (string.Equals(
-                _appSettings.Edge,
-                "Left",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            Left = work.Left;
-            return;
-        }
+        bool isLeft = string.Equals(
+            _appSettings.Edge,
+            "Left",
+            StringComparison.OrdinalIgnoreCase);
 
-        Left = work.Right - width;
+        Left = isLeft
+            ? work.Left
+            : work.Right - width;
     }
 
     private void MoveToRestState(bool initial = false)
@@ -285,6 +374,7 @@ public partial class MainWindow : Window
         PositionWindowForWidth(FanWidth);
 
         FanDeck.Visibility = Visibility.Visible;
+        UpdateDynamicEdgeCorners();
         FanDeck.Opacity = 1;
 
         Dispatcher.BeginInvoke(
@@ -489,7 +579,12 @@ return new[]
         {
             new CustomPopupPlacement(
                 new Point(
-                    targetSize.Width - popupSize.Width,
+                    string.Equals(
+                        _appSettings.Edge,
+                        "Left",
+                        StringComparison.OrdinalIgnoreCase)
+                        ? targetSize.Width
+                        : targetSize.Width - popupSize.Width,
                     yOffset),
                 PopupPrimaryAxis.Horizontal)
         };
@@ -933,6 +1028,7 @@ private void ClosePreviewImmediately()
         PositionWindowForWidth(OpenWidth);
 
         OpenState.Visibility = Visibility.Visible;
+        UpdateDynamicEdgeCorners();
         OpenState.Opacity = 1;
 
         var cardTransform = new TranslateTransform(36, 0);
@@ -1226,6 +1322,7 @@ private void ClosePreviewImmediately()
         }
     }
 }
+
 
 
 

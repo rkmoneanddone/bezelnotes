@@ -75,11 +75,9 @@
                 <TextBlock Text="Screen edge" FontSize="14" FontWeight="SemiBold" />
                 <TextBlock Text="Where StickyNotes rests" FontSize="12.5" Foreground="#777C84" />
               </StackPanel>
-              <ComboBox x:Name="EdgeComboBox" Grid.Column="1" SelectedIndex="1">
-                <ComboBoxItem Content="Top" />
-                <ComboBoxItem Content="Right" />
-                <ComboBoxItem Content="Bottom" />
-                <ComboBoxItem Content="Left" />
+              <ComboBox x:Name="EdgeComboBox" Grid.Column="1" SelectedIndex="0">
+                <ComboBoxItem xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" Content="Right" />
+                <ComboBoxItem xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" Content="Left" />
               </ComboBox>
             </Grid>
             <Grid Margin="0,14,0,0">

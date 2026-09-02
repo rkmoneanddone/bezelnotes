@@ -125,7 +125,7 @@
           </Border>
         </Grid>
       </Border>
-      <Border Grid.Column="1" Width="92" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent">
+      <Border Grid.Column="1" Width="92" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" x:Name="OpenDeckRail">
         <ListBox x:Name="OpenDeckList" Width="92" MaxHeight="410" Background="Transparent" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Hidden" SelectionChanged="OpenDeckList_SelectionChanged">
           <ListBox.ItemContainerStyle>
             <Style TargetType="ListBoxItem">
