@@ -92,13 +92,27 @@ export const bootstrapAccount = onRequest(
         if (!entitlementSnapshot.exists) {
           // Firebase Auth creation time is authoritative.
           // Reinstalling the desktop app cannot reset the trial.
+          // Trial config is read only once, when entitlement is first created.
+          const pricingSnapshot =
+            await transaction.get(
+              db.collection("config").doc("pricing"));
+
+          const configuredTrialDays =
+            pricingSnapshot.exists &&
+            Number.isInteger(pricingSnapshot.data()?.trialDays)
+              ? Number(pricingSnapshot.data()?.trialDays)
+              : TRIAL_DAYS;
+
+          const trialDaysAtSignup =
+            Math.min(90, Math.max(1, configuredTrialDays));
+
           trialStartedAt =
             Timestamp.fromDate(user.creationTime);
 
           trialEndsAt =
             Timestamp.fromMillis(
               user.creationTime.getTime() +
-              TRIAL_DAYS * 24 * 60 * 60 * 1000);
+              trialDaysAtSignup * 24 * 60 * 60 * 1000);
 
           entitlementState =
             now.toMillis() < trialEndsAt.toMillis()
@@ -109,6 +123,7 @@ export const bootstrapAccount = onRequest(
             uid: user.uid,
             trialStartedAt,
             trialEndsAt,
+            trialDaysAtSignup,
             entitlementState,
             premiumEnabled: false,
             planCode: "none",
@@ -874,4 +889,165 @@ export const updateAdminConfig = onRequest(
     catch (error: any) {
       sendAdminError(response, error);
     }
+  });
+
+// ============================================================
+// ADMIN V2 - COMPACT MONITORING + CONFIGURATION
+// LOW-CALL DESIGN: no polling; lazy tab loads; paged reads.
+// ============================================================
+
+const ADMIN_PAGE_DEFAULT = 25;
+const ADMIN_PAGE_MAX = 100;
+
+function adminPageSize(value: unknown): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return ADMIN_PAGE_DEFAULT;
+  return Math.min(ADMIN_PAGE_MAX, Math.max(10, Math.floor(parsed)));
+}
+
+function safeText(value: unknown, maxLength = 500): string {
+  return typeof value === "string" ? value.trim().substring(0, maxLength) : "";
+}
+
+function isoFromTimestamp(value: unknown): string | null {
+  return value instanceof Timestamp ? value.toDate().toISOString() : null;
+}
+
+async function countWhere(collectionName: string, field: string, value: unknown): Promise<number> {
+  const result = await db.collection(collectionName).where(field, "==", value).count().get();
+  return result.data().count;
+}
+
+export const getAdminDashboardV2 = onRequest(
+  { region: "asia-south1", invoker: "public", cors: false },
+  async (request, response) => {
+    response.set("Cache-Control", "no-store");
+    if (request.method !== "GET") { response.status(405).json({error:"METHOD_NOT_ALLOWED"}); return; }
+    try {
+      await requireAdmin(request);
+      const [users, installs, trials, expired, monthly, yearly, payOk, payFail, pricingDoc, appDoc] = await Promise.all([
+        db.collection("users").count().get(),
+        db.collection("installations").count().get(),
+        countWhere("entitlements","entitlementState","trial"),
+        countWhere("entitlements","entitlementState","expired"),
+        countWhere("entitlements","planCode","monthly"),
+        countWhere("entitlements","planCode","yearly"),
+        countWhere("payments","status","confirmed"),
+        countWhere("payments","status","failed"),
+        db.collection("config").doc("pricing").get(),
+        db.collection("config").doc("app").get(),
+      ]);
+      response.status(200).json({
+        counts:{users:users.data().count,installations:installs.data().count,trials,notSubscribed:expired,monthly,yearly,paymentsConfirmed:payOk,paymentsFailed:payFail},
+        pricing:pricingDoc.exists?pricingDoc.data():{trialDays:7,monthlyPriceCents:149,yearlyPriceCents:599,currency:"USD",monthlyPriceProtectionMonths:12},
+        appConfig:appDoc.exists?appDoc.data():{latestVersion:"",minimumVersion:"",cloudSyncEnabled:false,clientRefreshHours:48}
+      });
+    } catch(error:any){ sendAdminError(response,error); }
+  });
+
+export const listAdminAccountsV2 = onRequest(
+  { region:"asia-south1", invoker:"public", cors:false },
+  async (request,response) => {
+    response.set("Cache-Control","no-store");
+    if(request.method!=="GET"){response.status(405).json({error:"METHOD_NOT_ALLOWED"});return;}
+    try{
+      await requireAdmin(request);
+      const category=safeText(request.query.category,32).toLowerCase();
+      const limit=adminPageSize(request.query.limit);
+      const cursor=safeText(request.query.cursor,160);
+      let query:FirebaseFirestore.Query=db.collection("entitlements");
+      if(category==="trial") query=query.where("entitlementState","==","trial");
+      else if(category==="not_subscribed") query=query.where("entitlementState","==","expired");
+      else if(category==="monthly") query=query.where("planCode","==","monthly");
+      else if(category==="yearly") query=query.where("planCode","==","yearly");
+      else throw new Error("INVALID_REQUEST");
+      query=query.orderBy("__name__").limit(limit+1);
+      if(cursor){const c=await db.collection("entitlements").doc(cursor).get();if(c.exists)query=query.startAfter(c);}
+      const snap=await query.get();
+      const hasMore=snap.docs.length>limit;
+      const docs=snap.docs.slice(0,limit);
+      const authResult=docs.length?await getAuth().getUsers(docs.map(d=>({uid:d.id}))):{users:[],notFound:[]};
+      const authMap=new Map(authResult.users.map(u=>[u.uid,u]));
+      response.status(200).json({
+        accounts:docs.map(doc=>{const d=doc.data();const u=authMap.get(doc.id);return{
+          uid:doc.id,email:u?.email??"",createdAtUtc:u?.metadata.creationTime??null,lastSignInAtUtc:u?.metadata.lastSignInTime??null,
+          entitlementState:safeText(d.entitlementState,32)||"none",planCode:safeText(d.planCode,32)||"none",premiumEnabled:d.premiumEnabled===true,
+          trialStartedAtUtc:isoFromTimestamp(d.trialStartedAt),trialEndsAtUtc:isoFromTimestamp(d.trialEndsAt),trialDaysAtSignup:Number(d.trialDaysAtSignup)||null,
+          priceAtSignupCents:Number(d.priceAtSignupCents)||null,priceProtectedUntilUtc:isoFromTimestamp(d.priceProtectedUntil),currentPeriodEndUtc:isoFromTimestamp(d.currentPeriodEnd)
+        }}),
+        hasMore,nextCursor:hasMore&&docs.length?docs[docs.length-1].id:null
+      });
+    }catch(error:any){sendAdminError(response,error);}
+  });
+
+export const listAdminPaymentsV2 = onRequest(
+  { region:"asia-south1", invoker:"public", cors:false },
+  async (request,response)=>{
+    response.set("Cache-Control","no-store");
+    if(request.method!=="GET"){response.status(405).json({error:"METHOD_NOT_ALLOWED"});return;}
+    try{
+      await requireAdmin(request);
+      const limit=adminPageSize(request.query.limit);const cursor=safeText(request.query.cursor,160);
+      let query:FirebaseFirestore.Query=db.collection("payments").orderBy("createdAt","desc").limit(limit+1);
+      if(cursor){const c=await db.collection("payments").doc(cursor).get();if(c.exists)query=query.startAfter(c);}
+      const snap=await query.get();const hasMore=snap.docs.length>limit;const docs=snap.docs.slice(0,limit);
+      response.status(200).json({payments:docs.map(doc=>{const d=doc.data();return{
+        id:doc.id,uid:safeText(d.uid,160),email:safeText(d.email,320),planCode:safeText(d.planCode,32),amountCents:Number(d.amountCents)||0,currency:safeText(d.currency,8)||"USD",
+        status:safeText(d.status,32)||"pending",gatewayReference:safeText(d.gatewayReference,160),failureReason:safeText(d.failureReason,300),createdAtUtc:isoFromTimestamp(d.createdAt)
+      }}),hasMore,nextCursor:hasMore&&docs.length?docs[docs.length-1].id:null});
+    }catch(error:any){sendAdminError(response,error);}
+  });
+
+export const listAdminNotificationsV2 = onRequest(
+  { region:"asia-south1", invoker:"public", cors:false },
+  async (request,response)=>{
+    response.set("Cache-Control","no-store");
+    if(request.method!=="GET"){response.status(405).json({error:"METHOD_NOT_ALLOWED"});return;}
+    try{
+      await requireAdmin(request);
+      const snap=await db.collection("notifications").orderBy("createdAt","desc").limit(50).get();
+      response.status(200).json({notifications:snap.docs.map(doc=>{const d=doc.data();return{
+        id:doc.id,title:safeText(d.title,100),message:safeText(d.message,500),type:safeText(d.type,24)||"info",active:d.active===true,
+        startAtUtc:safeText(d.startAtUtc,64),expiresAtUtc:safeText(d.expiresAtUtc,64),createdAtUtc:isoFromTimestamp(d.createdAt)
+      }})});
+    }catch(error:any){sendAdminError(response,error);}
+  });
+
+export const saveAdminNotificationV2 = onRequest(
+  { region:"asia-south1", invoker:"public", cors:false },
+  async (request,response)=>{
+    response.set("Cache-Control","no-store");
+    if(request.method!=="POST"){response.status(405).json({error:"METHOD_NOT_ALLOWED"});return;}
+    try{
+      const admin=await requireAdmin(request);const id=safeText(request.body?.id,160);const title=safeText(request.body?.title,100);const message=safeText(request.body?.message,500);const type=safeText(request.body?.type,24);
+      if(title.length<2||message.length<2||!["info","update","warning"].includes(type))throw new Error("INVALID_REQUEST");
+      const payload={title,message,type,active:request.body?.active===true,startAtUtc:safeText(request.body?.startAtUtc,64),expiresAtUtc:safeText(request.body?.expiresAtUtc,64),updatedAt:FieldValue.serverTimestamp(),updatedByUid:admin.uid};
+      if(id){await db.collection("notifications").doc(id).set(payload,{merge:true});response.status(200).json({ok:true,id});return;}
+      const ref=db.collection("notifications").doc();await ref.set({...payload,createdAt:FieldValue.serverTimestamp(),createdByUid:admin.uid});response.status(200).json({ok:true,id:ref.id});
+    }catch(error:any){sendAdminError(response,error);}
+  });
+
+export const updateAdminPricingV2 = onRequest(
+  { region:"asia-south1", invoker:"public", cors:false },
+  async (request,response)=>{
+    response.set("Cache-Control","no-store");
+    if(request.method!=="POST"){response.status(405).json({error:"METHOD_NOT_ALLOWED"});return;}
+    try{
+      const admin=await requireAdmin(request);
+      const pricing={trialDays:Math.min(90,Math.max(1,Math.floor(Number(request.body?.trialDays)||7))),monthlyPriceCents:Math.max(1,Math.round(Number(request.body?.monthlyPriceCents)||149)),yearlyPriceCents:Math.max(1,Math.round(Number(request.body?.yearlyPriceCents)||599)),currency:(safeText(request.body?.currency,8)||"USD").toUpperCase(),monthlyPriceProtectionMonths:Math.min(36,Math.max(1,Math.floor(Number(request.body?.monthlyPriceProtectionMonths)||12))),updatedAt:FieldValue.serverTimestamp(),updatedByUid:admin.uid};
+      const history=db.collection("pricingHistory").doc();const batch=db.batch();batch.set(db.collection("config").doc("pricing"),pricing,{merge:true});batch.set(history,{...pricing,createdAt:FieldValue.serverTimestamp()});await batch.commit();
+      response.status(200).json({ok:true,historyId:history.id});
+    }catch(error:any){sendAdminError(response,error);}
+  });
+
+export const updateAdminAppConfigV2 = onRequest(
+  { region:"asia-south1", invoker:"public", cors:false },
+  async (request,response)=>{
+    response.set("Cache-Control","no-store");
+    if(request.method!=="POST"){response.status(405).json({error:"METHOD_NOT_ALLOWED"});return;}
+    try{
+      const admin=await requireAdmin(request);const hrs=Math.min(168,Math.max(12,Math.floor(Number(request.body?.clientRefreshHours)||48)));
+      await db.collection("config").doc("app").set({latestVersion:safeText(request.body?.latestVersion,32),minimumVersion:safeText(request.body?.minimumVersion,32),cloudSyncEnabled:request.body?.cloudSyncEnabled===true,clientRefreshHours:hrs,updatedAt:FieldValue.serverTimestamp(),updatedByUid:admin.uid},{merge:true});
+      response.status(200).json({ok:true});
+    }catch(error:any){sendAdminError(response,error);}
   });

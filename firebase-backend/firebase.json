@@ -1,25 +1,18 @@
 {
-  "functions": {
-    "source": "functions",
-    "runtime": "nodejs22"
-  },
-  "firestore": {
-    "rules": "firestore.rules"
-  },
+  "functions": {"source":"functions","runtime":"nodejs22"},
+  "firestore": {"rules":"firestore.rules"},
   "hosting": {
-    "public": "admin-web",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
+    "public":"admin-web",
+    "ignore":["firebase.json","**/.*","**/node_modules/**"],
+    "rewrites":[
       {"source":"/api/bootstrap-admin","function":{"functionId":"bootstrapAdminAccess","region":"asia-south1"}},
-      {"source":"/api/admin-overview","function":{"functionId":"getAdminOverview","region":"asia-south1"}},
-      {"source":"/api/admin-users","function":{"functionId":"listAdminUsers","region":"asia-south1"}},
-      {"source":"/api/admin-user","function":{"functionId":"getAdminUser","region":"asia-south1"}},
-      {"source":"/api/admin-config","function":{"functionId":"getAdminConfig","region":"asia-south1"}},
-      {"source":"/api/admin-config-update","function":{"functionId":"updateAdminConfig","region":"asia-south1"}}
+      {"source":"/api/v2/dashboard","function":{"functionId":"getAdminDashboardV2","region":"asia-south1"}},
+      {"source":"/api/v2/accounts","function":{"functionId":"listAdminAccountsV2","region":"asia-south1"}},
+      {"source":"/api/v2/payments","function":{"functionId":"listAdminPaymentsV2","region":"asia-south1"}},
+      {"source":"/api/v2/notifications","function":{"functionId":"listAdminNotificationsV2","region":"asia-south1"}},
+      {"source":"/api/v2/notification-save","function":{"functionId":"saveAdminNotificationV2","region":"asia-south1"}},
+      {"source":"/api/v2/pricing-save","function":{"functionId":"updateAdminPricingV2","region":"asia-south1"}},
+      {"source":"/api/v2/app-config-save","function":{"functionId":"updateAdminAppConfigV2","region":"asia-south1"}}
     ]
   }
 }
