@@ -84,7 +84,7 @@
                                            FontSize="14.5"/>
 
                                 <TextBlock x:Name="AccountEmailText"
-                                           Text="Trial starts when your account is activated."
+                                           Text="Checking account..."
                                            Margin="0,2,12,0"
                                            FontSize="13.5"
                                            TextTrimming="CharacterEllipsis"/>
@@ -92,7 +92,7 @@
 
                             <TextBlock x:Name="EntitlementStatusText"
                                        Grid.Column="1"
-                                       Text="Not started"
+                                       Text="Checking..."
                                        FontSize="13.5"
                                        FontWeight="SemiBold"
                                        Foreground="#6B7280"
@@ -102,7 +102,7 @@
                         <StackPanel Orientation="Horizontal"
                                     Margin="0,8,0,0">
                             <Button x:Name="AccountActionButton"
-                                    Content="Sign in / Create account"
+                                    Content="Loading..."
                                     Click="AccountButton_Click"/>
 
                             <Button x:Name="PremiumButton"

@@ -166,6 +166,7 @@ public partial class SettingsWindow : Window
 
         window.ShowDialog();
 
+        ShowAccountLoadingState();
         await RestoreSavedAccountStateAsync();
     }
 
@@ -196,6 +197,7 @@ public partial class SettingsWindow : Window
 
     private async Task InitializeAccountAndStartupAsync()
     {
+        ShowAccountLoadingState();
         EnsureStartupEnabled();
         await RestoreSavedAccountStateAsync();
     }
@@ -233,10 +235,14 @@ public partial class SettingsWindow : Window
                 await backend.GetBootstrapStateAsync(
                     refreshed);
 
+            var effective =
+                GetEffectiveAccountState(
+                    state);
+
             ApplySignedInAccountState(
                 state.Email,
-                state.EntitlementState,
-                state.TrialDaysRemaining);
+                effective.State,
+                effective.DaysRemaining);
         }
         catch
         {
@@ -245,11 +251,71 @@ public partial class SettingsWindow : Window
         }
     }
 
+    private static (string State, int DaysRemaining)
+        GetEffectiveAccountState(
+            BackendAccountState state)
+    {
+        string effectiveState =
+            state.EntitlementState;
+
+        int daysRemaining =
+            state.TrialDaysRemaining;
+
+        if (string.Equals(
+                effectiveState,
+                "trial",
+                StringComparison.OrdinalIgnoreCase) &&
+            state.TrialEndsAtUtc.HasValue)
+        {
+            TimeSpan remaining =
+                state.TrialEndsAtUtc.Value -
+                DateTimeOffset.UtcNow;
+
+            if (remaining <= TimeSpan.Zero)
+            {
+                return ("expired", 0);
+            }
+
+            daysRemaining =
+                Math.Max(
+                    1,
+                    (int)Math.Ceiling(
+                        remaining.TotalDays));
+        }
+
+        return (
+            effectiveState,
+            Math.Max(0, daysRemaining));
+    }
+
+    private void ShowAccountLoadingState()
+    {
+        AccountEmailText.Text =
+            "Checking account...";
+
+        EntitlementStatusText.Text =
+            "Checking...";
+
+        EntitlementStatusText.Foreground =
+            new SolidColorBrush(
+                Color.FromRgb(
+                    107,
+                    114,
+                    128));
+
+        AccountActionButton.Content =
+            "Loading...";
+
+        AccountActionButton.IsEnabled =
+            false;
+    }
     public void ApplySignedInAccountState(
         string email,
         string entitlementState,
         int trialDaysRemaining)
     {
+        AccountActionButton.IsEnabled =
+            true;
         AccountEmailText.Text =
             $"Signed in as {email}";
 
@@ -327,6 +393,8 @@ public partial class SettingsWindow : Window
 
     private void ShowLoggedOutState()
     {
+        AccountActionButton.IsEnabled =
+            true;
         AccountEmailText.Text =
             "Trial starts when your account is activated.";
 
