@@ -405,6 +405,37 @@ export const getActiveNotification = onRequest(
 
       const nowMs = Date.now();
 
+      const parseUtcMillis = (
+        value: unknown,
+        fallback: number
+      ): number => {
+        if (typeof value !== "string" ||
+            value.trim().length === 0) {
+          return fallback;
+        }
+
+        const parsed = Date.parse(value);
+
+        return Number.isNaN(parsed)
+          ? fallback
+          : parsed;
+      };
+
+      const normalizeUtc = (
+        value: unknown
+      ): string | null => {
+        if (typeof value !== "string" ||
+            value.trim().length === 0) {
+          return null;
+        }
+
+        const parsed = new Date(value);
+
+        return Number.isNaN(parsed.getTime())
+          ? null
+          : parsed.toISOString();
+      };
+
       const activeNotifications: any[] =
         snapshot.docs
           .map((doc): any => ({
@@ -413,27 +444,27 @@ export const getActiveNotification = onRequest(
           }))
           .filter((item: any) => {
             const starts =
-              item.startAt instanceof Timestamp
-                ? item.startAt.toMillis()
-                : 0;
+              parseUtcMillis(
+                item.startAtUtc,
+                0);
 
             const expires =
-              item.expiresAt instanceof Timestamp
-                ? item.expiresAt.toMillis()
-                : Number.MAX_SAFE_INTEGER;
+              parseUtcMillis(
+                item.expiresAtUtc,
+                Number.MAX_SAFE_INTEGER);
 
             return starts <= nowMs && expires >= nowMs;
           })
           .sort((a: any, b: any) => {
             const aStart =
-              a.startAt instanceof Timestamp
-                ? a.startAt.toMillis()
-                : 0;
+              parseUtcMillis(
+                a.startAtUtc,
+                0);
 
             const bStart =
-              b.startAt instanceof Timestamp
-                ? b.startAt.toMillis()
-                : 0;
+              parseUtcMillis(
+                b.startAtUtc,
+                0);
 
             return bStart - aStart;
           });
@@ -457,17 +488,9 @@ export const getActiveNotification = onRequest(
                   ? item.type
                   : "info",
               startAtUtc:
-                item.startAt instanceof Timestamp
-                  ? item.startAt
-                      .toDate()
-                      .toISOString()
-                  : null,
+                normalizeUtc(item.startAtUtc),
               expiresAtUtc:
-                item.expiresAt instanceof Timestamp
-                  ? item.expiresAt
-                      .toDate()
-                      .toISOString()
-                  : null,
+                normalizeUtc(item.expiresAtUtc),
             })),
       });
     }
