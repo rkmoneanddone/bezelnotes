@@ -1,0 +1,34 @@
+:root{font-family:"Segoe UI",Arial,sans-serif;color:#18212b;background:#f4f6f8}
+*{box-sizing:border-box}
+body{margin:0;background:#f4f6f8}
+.wrap{width:min(1080px,88vw);margin:auto}
+.sitebar{background:#111827;color:#fff;border-bottom:1px solid #253247}
+.nav{height:62px;display:flex;align-items:center;justify-content:space-between}
+.brand{font-size:19px;font-weight:750}
+.links{display:flex;gap:18px}
+.links a{color:#dbeafe;text-decoration:none;font-size:13px}
+.hero{background:linear-gradient(180deg,#111827 0,#182336 100%);color:#fff;padding:76px 0}
+.hero-inner{display:grid;grid-template-columns:1.2fr .8fr;gap:54px;align-items:center}
+.eyebrow{font-size:12px;letter-spacing:.12em;color:#93c5fd;font-weight:700}
+h1{font-size:48px;line-height:1.06;margin:13px 0 18px;max-width:760px}
+.lead{font-size:18px;line-height:1.6;color:#d5deea;max-width:720px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
+.chips span{background:#253247;border:1px solid #35465e;border-radius:999px;padding:7px 11px;font-size:12px}
+.product-card{height:290px;background:#f8fafc;border-radius:18px;position:relative;box-shadow:0 24px 60px #0005;overflow:hidden;color:#17202a}
+.mock-edge{position:absolute;right:0;top:46px;display:flex;flex-direction:column;gap:5px}
+.tab{width:56px;height:82px;border-radius:12px 0 0 12px;display:grid;place-items:center;font-size:12px;font-weight:700;writing-mode:vertical-rl;transform:rotate(180deg)}
+.t1{background:#fde68a}.t2{background:#a7f3d0}.t3{background:#bfdbfe}
+.note{position:absolute;left:28px;top:58px;width:220px;min-height:145px;padding:18px;background:#fff3b5;border-radius:14px;box-shadow:0 8px 30px #0002}
+.note p{line-height:1.5;font-size:14px}
+.section{padding:54px 0}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+article{background:#fff;border:1px solid #dde3ea;border-radius:13px;padding:22px}
+article h2,.section h2{font-size:19px;margin-top:0}
+article p,.section p{color:#56616e;line-height:1.6}
+.muted{background:#e9edf2}
+footer{padding:24px 0;background:#111827;color:#aeb9c7;font-size:13px}
+@media(max-width:780px){
+  .hero-inner,.grid{grid-template-columns:1fr}
+  h1{font-size:37px}
+  .product-card{max-width:420px}
+}

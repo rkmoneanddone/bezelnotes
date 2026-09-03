@@ -1,12 +1,85 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bezel Admin</title><link rel="stylesheet" href="/styles.css"></head><body>
-<header><div><h1>Bezel Admin</h1><small>Configuration & monitoring</small></div><div class="auth"><span id="identity"></span><button id="signin">Sign in with Google</button><button id="signout" class="ghost hidden">Sign out</button></div></header>
-<main class="shell admin-center"><div id="message" class="message hidden"></div><section id="bootstrap" class="panel hidden"><h2>Initialize admin access</h2><div class="inline"><input id="bootstrapCode" type="password" placeholder="Bootstrap code"><button id="bootstrapButton">Grant admin</button></div></section>
-<div id="app" class="hidden"><nav class="tabs"><button data-tab="overview" class="active">Overview</button><button data-tab="trial">Trials</button><button data-tab="not_subscribed">Not subscribed</button><button data-tab="monthly">Monthly</button><button data-tab="yearly">Yearly</button><button data-tab="payments">Payments</button><button data-tab="notifications">Notifications</button><button data-tab="pricing">Pricing & Trial</button><button data-tab="config">App Config</button></nav>
-<section id="overview" class="view active"><div class="summary" id="summary"></div><div class="panel"><div class="head"><div><h2>Operational snapshot</h2><p>No automatic refresh. Use Refresh only when needed.</p></div><button id="refreshOverview" class="ghost">Refresh</button></div><div id="snapshot" class="snapshot"></div></div></section>
-<section id="accountsView" class="view"><div class="panel"><div class="head"><div><h2 id="accountsTitle">Accounts</h2><p>Page loads only when opened.</p></div><div class="actions"><select id="pageSize"><option>25</option><option>50</option><option>100</option></select><button id="refreshAccounts" class="ghost">Refresh</button></div></div><div class="tablewrap"><table><thead><tr><th>Email</th><th>Status</th><th>Plan</th><th>Trial ends</th><th>Last sign-in</th><th></th></tr></thead><tbody id="accountsBody"></tbody></table></div><div class="pager"><button id="accountsPrev" class="ghost">Previous</button><span id="accountsPageLabel">Page 1</span><button id="accountsNext" class="ghost">Next</button></div></div></section>
-<section id="payments" class="view"><div class="panel"><div class="head"><div><h2>Payments</h2><p>Monitoring only until payment integration is enabled.</p></div><button id="refreshPayments" class="ghost">Refresh</button></div><div class="tablewrap"><table><thead><tr><th>Email</th><th>Plan</th><th>Amount</th><th>Status</th><th>Date</th><th>Reference / reason</th></tr></thead><tbody id="paymentsBody"></tbody></table></div><div class="pager"><button id="paymentsPrev" class="ghost">Previous</button><span id="paymentsPageLabel">Page 1</span><button id="paymentsNext" class="ghost">Next</button></div></div></section>
-<section id="notifications" class="view"><div class="split"><div class="panel"><div class="head"><div><h2>Notifications</h2><p>Loaded only when this tab is opened.</p></div><button id="refreshNotifications" class="ghost">Refresh</button></div><div id="notificationList"></div></div><div class="panel"><h2>Create / edit</h2><input id="notificationId" type="hidden"><label>Title<input id="notificationTitle"></label><label>Message<textarea id="notificationMessage"></textarea></label><div class="two"><label>Type<select id="notificationType"><option value="info">Info</option><option value="update">Update</option><option value="warning">Warning</option></select></label><label class="check"><input id="notificationActive" type="checkbox">Active</label></div><div class="two"><label>Start UTC<input id="notificationStart" type="datetime-local"></label><label>Expires UTC<input id="notificationExpires" type="datetime-local"></label></div><div class="actions right"><button id="clearNotification" class="ghost">Clear</button><button id="saveNotification">Save</button></div></div></div></section>
-<section id="pricing" class="view"><div class="panel narrow"><div class="head"><div><h2>Pricing & Trial</h2><p>Server-side configuration.</p></div><button id="savePricing">Save</button></div><div class="formgrid"><label>Trial days<input id="trialDays" type="number" min="1" max="90"></label><label>Currency<input id="currency"></label><label>Monthly price<input id="monthlyPrice" type="number" step="0.01"></label><label>Yearly price<input id="yearlyPrice" type="number" step="0.01"></label><label>Monthly price protection (months)<input id="priceProtectionMonths" type="number" min="1" max="36"></label></div><div class="rule">Monthly users keep their captured price through the protection date. Yearly renewal uses the then-current yearly price after the paid annual term.</div></div></section>
-<section id="config" class="view"><div class="panel narrow"><div class="head"><div><h2>App Config</h2><p>Provider-neutral cloud sync.</p></div><button id="saveConfig">Save</button></div><div class="formgrid"><label>Latest version<input id="latestVersion"></label><label>Minimum version<input id="minimumVersion"></label><label>Backend refresh hours<input id="clientRefreshHours" type="number" min="12" max="168"></label><label class="check"><input id="cloudSyncEnabled" type="checkbox">Cloud sync enabled</label></div><div class="rule">Recommended: 48 hours. No continuous polling.</div></div></section>
-</div></main><dialog id="detailDialog"><button id="closeDialog" class="x">x</button><div id="detail"></div></dialog>
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script><script src="/__/firebase/init.js"></script><script src="/app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Bezel Sticky Notes - lightweight edge-docked sticky notes for Windows.">
+<title>Bezel Sticky Notes</title>
+<link rel="stylesheet" href="/public.css">
+</head>
+<body>
+<header class="sitebar">
+  <div class="wrap nav">
+    <div class="brand">Bezel Sticky Notes</div>
+    <nav class="links">
+      <a href="#features">Features</a>
+      <a href="#about">About</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap hero-inner">
+      <div>
+        <span class="eyebrow">WINDOWS DESKTOP NOTES</span>
+        <h1>Notes that stay at the edge of your screen.</h1>
+        <p class="lead">
+          Bezel Sticky Notes keeps your notes close without filling your desktop.
+          Hover to preview, click to edit, and keep your workspace clean.
+        </p>
+        <div class="chips">
+          <span>Right-edge notes</span>
+          <span>Local-first</span>
+          <span>Fast preview</span>
+          <span>Windows</span>
+        </div>
+      </div>
+
+      <div class="product-card" aria-label="Bezel Sticky Notes concept preview">
+        <div class="mock-edge">
+          <div class="tab t1">Ideas</div>
+          <div class="tab t2">Tasks</div>
+          <div class="tab t3">Today</div>
+        </div>
+        <div class="note">
+          <strong>Bezel Sticky Notes</strong>
+          <p>Your notes remain available without taking over your desktop.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features" class="section">
+    <div class="wrap grid">
+      <article>
+        <h2>Compact by design</h2>
+        <p>A slim edge presence expands only when you need it.</p>
+      </article>
+      <article>
+        <h2>Local-first notes</h2>
+        <p>Your note content stays on your computer. Cloud sync is optional and user-controlled.</p>
+      </article>
+      <article>
+        <h2>Simple workflow</h2>
+        <p>Hover, preview, open and edit without opening a full-screen note manager.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="about" class="section muted">
+    <div class="wrap">
+      <h2>Bezel Sticky Notes</h2>
+      <p>
+        The public product page will contain screenshots, pricing, download information,
+        support and release details as the Windows release is prepared.
+      </p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">Bezel Sticky Notes</div>
+</footer>
+</body>
+</html>
