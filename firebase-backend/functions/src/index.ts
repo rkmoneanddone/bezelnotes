@@ -378,6 +378,117 @@ export const bootstrapAccount = onRequest(
 // The desktop client never receives GOOGLE_OAUTH_CLIENT_SECRET.
 // ============================================================
 
+export const getActiveNotification = onRequest(
+  {
+    region: "asia-south1",
+    cors: false,
+    invoker: "public",
+  },
+  async (request, response) => {
+    response.set("Cache-Control", "no-store");
+
+    if (request.method !== "POST") {
+      response.status(405).json({
+        error: "METHOD_NOT_ALLOWED",
+      });
+      return;
+    }
+
+    try {
+      await verifyBearer(request);
+
+      const snapshot =
+        await db.collection("notifications")
+          .where("active", "==", true)
+          .limit(20)
+          .get();
+
+      const nowMs = Date.now();
+
+      const activeNotification: any =
+        snapshot.docs
+          .map((doc): any => ({
+            id: doc.id,
+            ...(doc.data() as Record<string, any>),
+          }))
+          .filter((item: any) => {
+            const starts =
+              item.startAt instanceof Timestamp
+                ? item.startAt.toMillis()
+                : 0;
+
+            const expires =
+              item.expiresAt instanceof Timestamp
+                ? item.expiresAt.toMillis()
+                : Number.MAX_SAFE_INTEGER;
+
+            return starts <= nowMs && expires >= nowMs;
+          })
+          .sort((a: any, b: any) => {
+            const aStart =
+              a.startAt instanceof Timestamp
+                ? a.startAt.toMillis()
+                : 0;
+
+            const bStart =
+              b.startAt instanceof Timestamp
+                ? b.startAt.toMillis()
+                : 0;
+
+            return bStart - aStart;
+          })[0] ?? null;
+
+      response.status(200).json({
+        checkedAtUtc: new Date().toISOString(),
+        notification:
+          activeNotification
+            ? {
+                id: activeNotification.id,
+                title:
+                  typeof activeNotification.title === "string"
+                    ? activeNotification.title
+                    : "",
+                message:
+                  typeof activeNotification.message === "string"
+                    ? activeNotification.message
+                    : "",
+                type:
+                  typeof activeNotification.type === "string"
+                    ? activeNotification.type
+                    : "info",
+                startAtUtc:
+                  activeNotification.startAt instanceof Timestamp
+                    ? activeNotification.startAt
+                        .toDate()
+                        .toISOString()
+                    : null,
+                expiresAtUtc:
+                  activeNotification.expiresAt instanceof Timestamp
+                    ? activeNotification.expiresAt
+                        .toDate()
+                        .toISOString()
+                    : null,
+              }
+            : null,
+      });
+    }
+    catch (error: any) {
+      const code = error?.message ?? "INTERNAL_ERROR";
+
+      if (code === "UNAUTHENTICATED") {
+        response.status(401).json({ error: code });
+        return;
+      }
+
+      console.error(
+        "getActiveNotification failed",
+        error);
+
+      response.status(500).json({
+        error: "INTERNAL_ERROR",
+      });
+    }
+  });
 import { defineSecret as defineGoogleOAuthSecret } from "firebase-functions/params";
 import { onRequest as onGoogleOAuthRequest } from "firebase-functions/v2/https";
 

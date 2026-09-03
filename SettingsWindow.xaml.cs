@@ -153,6 +153,7 @@ public partial class SettingsWindow : Window
         if (_secureSessionService.HasSavedSession)
         {
             _secureSessionService.Clear();
+            new NotificationCacheService().Clear();
             new BackendBootstrapCacheService().Clear();
             ShowLoggedOutState();
             return;
@@ -202,6 +203,48 @@ public partial class SettingsWindow : Window
         await RestoreSavedAccountStateAsync();
     }
 
+    private async Task RefreshNotificationIfDueAsync(
+        AuthSession session,
+        FirebaseClientConfig config)
+    {
+        var cache =
+            new NotificationCacheService();
+
+        NotificationCacheEnvelope? cached =
+            cache.Load();
+
+        if (!cache.IsRefreshDue(
+                DateTimeOffset.UtcNow))
+        {
+            ApplyBackendNotification(
+                cached?.Notification);
+            return;
+        }
+
+        try
+        {
+            var backend =
+                new SecureBackendService(config);
+
+            NotificationRefreshResponse response =
+                await backend.GetActiveNotificationAsync(
+                    session);
+
+            cache.Save(
+                response.Notification,
+                response.CheckedAtUtc == default
+                    ? DateTimeOffset.UtcNow
+                    : response.CheckedAtUtc);
+
+            ApplyBackendNotification(
+                response.Notification);
+        }
+        catch
+        {
+            ApplyBackendNotification(
+                cached?.Notification);
+        }
+    }
     private async Task RestoreSavedAccountStateAsync()
     {
         PersistedSession? persisted =
@@ -245,6 +288,9 @@ public partial class SettingsWindow : Window
                 effective.DaysRemaining);
             ApplyBackendNotification(
                 state.Notification);
+            await RefreshNotificationIfDueAsync(
+                refreshed,
+                config);
         }
         catch
         {

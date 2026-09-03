@@ -69,6 +69,15 @@ public sealed class SecureBackendService
         cache.Save(fresh);
         return fresh;
     }
+    public async Task<NotificationRefreshResponse>
+        GetActiveNotificationAsync(
+            AuthSession session)
+    {
+        return await PostAuthenticatedAsync<NotificationRefreshResponse>(
+            "getActiveNotification",
+            new { },
+            session.IdToken);
+    }
 private async Task<T> PostAuthenticatedAsync<T>(
         string endpoint,
         object body,
