@@ -445,3 +445,433 @@ export const exchangeGoogleCode =
         });
     }
   );
+
+// ============================================================
+// ADMIN V1 - CONFIGURATION + MONITORING
+// Custom claim admin=true is authoritative.
+// First admin setup also requires ADMIN_BOOTSTRAP_CODE.
+// ============================================================
+
+const adminBootstrapCode =
+  defineGoogleOAuthSecret("ADMIN_BOOTSTRAP_CODE");
+
+async function requireAdminAuth(request: any) {
+  const authorization = request.get("authorization") || "";
+
+  if (!authorization.startsWith("Bearer ")) {
+    throw new Error("UNAUTHENTICATED");
+  }
+
+  const idToken =
+    authorization.substring("Bearer ".length).trim();
+
+  const decoded =
+    await getAuth().verifyIdToken(idToken, true);
+
+  return decoded;
+}
+
+async function requireAdmin(request: any) {
+  const decoded = await requireAdminAuth(request);
+
+  if (decoded.admin !== true) {
+    throw new Error("ADMIN_REQUIRED");
+  }
+
+  return decoded;
+}
+
+function sendAdminError(response: any, error: any) {
+  const code = error?.message ?? "INTERNAL_ERROR";
+
+  if (code === "UNAUTHENTICATED") {
+    response.status(401).json({error: code});
+    return;
+  }
+
+  if (code === "ADMIN_REQUIRED") {
+    response.status(403).json({error: code});
+    return;
+  }
+
+  if (code === "INVALID_REQUEST") {
+    response.status(400).json({error: code});
+    return;
+  }
+
+  console.error("admin function failed", error);
+  response.status(500).json({error: "INTERNAL_ERROR"});
+}
+
+export const bootstrapAdminAccess = onRequest(
+  {
+    region: "asia-south1",
+    invoker: "public",
+    cors: false,
+    secrets: [adminBootstrapCode],
+  },
+  async (request, response) => {
+    response.set("Cache-Control", "no-store");
+
+    if (request.method !== "POST") {
+      response.status(405).json({error: "METHOD_NOT_ALLOWED"});
+      return;
+    }
+
+    try {
+      const decoded = await requireAdminAuth(request);
+
+      if (decoded.admin === true) {
+        response.status(200).json({admin: true, alreadyAdmin: true});
+        return;
+      }
+
+      const supplied =
+        typeof request.body?.bootstrapCode === "string"
+          ? request.body.bootstrapCode.trim()
+          : "";
+
+      const expected = adminBootstrapCode.value();
+
+      if (
+        supplied.length < 12 ||
+        expected.length < 12 ||
+        supplied !== expected
+      ) {
+        response.status(403).json({error: "INVALID_BOOTSTRAP_CODE"});
+        return;
+      }
+
+      const user = await getAuth().getUser(decoded.uid);
+      const existingClaims = user.customClaims ?? {};
+
+      await getAuth().setCustomUserClaims(user.uid, {
+        ...existingClaims,
+        admin: true,
+      });
+
+      await db.collection("adminProfiles").doc(user.uid).set(
+        {
+          uid: user.uid,
+          email: user.email ?? "",
+          admin: true,
+          grantedAt: FieldValue.serverTimestamp(),
+        },
+        {merge: true});
+
+      response.status(200).json({
+        admin: true,
+        refreshTokenRequired: true,
+      });
+    }
+    catch (error: any) {
+      sendAdminError(response, error);
+    }
+  });
+
+export const getAdminOverview = onRequest(
+  {
+    region: "asia-south1",
+    invoker: "public",
+    cors: false,
+  },
+  async (request, response) => {
+    response.set("Cache-Control", "no-store");
+
+    if (request.method !== "GET") {
+      response.status(405).json({error: "METHOD_NOT_ALLOWED"});
+      return;
+    }
+
+    try {
+      await requireAdmin(request);
+
+      const states = ["trial", "active", "grace", "expired"];
+
+      const [
+        usersCount,
+        installationsCount,
+        ...stateCounts
+      ] = await Promise.all([
+        db.collection("users").count().get(),
+        db.collection("installations").count().get(),
+        ...states.map(
+          (state) =>
+            db.collection("entitlements")
+              .where("entitlementState", "==", state)
+              .count()
+              .get()),
+      ]);
+
+      const entitlements: Record<string, number> = {};
+
+      states.forEach((state, index) => {
+        entitlements[state] = stateCounts[index].data().count;
+      });
+
+      response.status(200).json({
+        users: usersCount.data().count,
+        installations: installationsCount.data().count,
+        entitlements,
+      });
+    }
+    catch (error: any) {
+      sendAdminError(response, error);
+    }
+  });
+
+export const listAdminUsers = onRequest(
+  {
+    region: "asia-south1",
+    invoker: "public",
+    cors: false,
+  },
+  async (request, response) => {
+    response.set("Cache-Control", "no-store");
+
+    if (request.method !== "GET") {
+      response.status(405).json({error: "METHOD_NOT_ALLOWED"});
+      return;
+    }
+
+    try {
+      await requireAdmin(request);
+
+      const page = await getAuth().listUsers(100);
+      const refs =
+        page.users.map(
+          (u) => db.collection("entitlements").doc(u.uid));
+
+      const docs =
+        refs.length > 0
+          ? await db.getAll(...refs)
+          : [];
+
+      const byUid = new Map<string, any>();
+
+      docs.forEach((doc) => {
+        byUid.set(doc.id, doc.exists ? doc.data() : null);
+      });
+
+      const users = page.users.map((user) => {
+        const entitlement = byUid.get(user.uid);
+
+        return {
+          uid: user.uid,
+          email: user.email ?? "",
+          disabled: user.disabled,
+          createdAtUtc: user.metadata.creationTime ?? null,
+          lastSignInAtUtc: user.metadata.lastSignInTime ?? null,
+          entitlementState:
+            typeof entitlement?.entitlementState === "string"
+              ? entitlement.entitlementState
+              : "none",
+          trialEndsAtUtc:
+            entitlement?.trialEndsAt instanceof Timestamp
+              ? entitlement.trialEndsAt.toDate().toISOString()
+              : null,
+          premiumEnabled: entitlement?.premiumEnabled === true,
+          planCode:
+            typeof entitlement?.planCode === "string"
+              ? entitlement.planCode
+              : "none",
+        };
+      });
+
+      response.status(200).json({users});
+    }
+    catch (error: any) {
+      sendAdminError(response, error);
+    }
+  });
+
+export const getAdminUser = onRequest(
+  {
+    region: "asia-south1",
+    invoker: "public",
+    cors: false,
+  },
+  async (request, response) => {
+    response.set("Cache-Control", "no-store");
+
+    if (request.method !== "GET") {
+      response.status(405).json({error: "METHOD_NOT_ALLOWED"});
+      return;
+    }
+
+    try {
+      await requireAdmin(request);
+
+      const uid =
+        typeof request.query.uid === "string"
+          ? request.query.uid.trim()
+          : "";
+
+      if (uid.length < 10 || uid.length > 128) {
+        throw new Error("INVALID_REQUEST");
+      }
+
+      const [authUser, entitlementDoc, installs] =
+        await Promise.all([
+          getAuth().getUser(uid),
+          db.collection("entitlements").doc(uid).get(),
+          db.collection("installations")
+            .where("uid", "==", uid)
+            .limit(25)
+            .get(),
+        ]);
+
+      const entitlement =
+        entitlementDoc.exists ? entitlementDoc.data() : null;
+
+      response.status(200).json({
+        user: {
+          uid: authUser.uid,
+          email: authUser.email ?? "",
+          disabled: authUser.disabled,
+          createdAtUtc: authUser.metadata.creationTime ?? null,
+          lastSignInAtUtc: authUser.metadata.lastSignInTime ?? null,
+        },
+        entitlement:
+          entitlement
+            ? {
+                entitlementState: entitlement.entitlementState ?? "none",
+                premiumEnabled: entitlement.premiumEnabled === true,
+                planCode: entitlement.planCode ?? "none",
+                trialStartedAtUtc:
+                  entitlement.trialStartedAt instanceof Timestamp
+                    ? entitlement.trialStartedAt.toDate().toISOString()
+                    : null,
+                trialEndsAtUtc:
+                  entitlement.trialEndsAt instanceof Timestamp
+                    ? entitlement.trialEndsAt.toDate().toISOString()
+                    : null,
+              }
+            : null,
+        installations:
+          installs.docs.map((doc) => {
+            const data = doc.data();
+
+            return {
+              installationId: data.installationId ?? doc.id,
+              platform: data.platform ?? "",
+              osVersion: data.osVersion ?? "",
+              appVersion: data.appVersion ?? "",
+              lastSeenAtUtc:
+                data.lastSeenAt instanceof Timestamp
+                  ? data.lastSeenAt.toDate().toISOString()
+                  : null,
+            };
+          }),
+      });
+    }
+    catch (error: any) {
+      sendAdminError(response, error);
+    }
+  });
+
+const adminConfigKeys =
+  new Set([
+    "latestVersion",
+    "minimumVersion",
+    "premiumEnabled",
+    "googleDriveEnabled",
+    "oneDriveEnabled",
+    "maintenanceMessage",
+  ]);
+
+export const getAdminConfig = onRequest(
+  {
+    region: "asia-south1",
+    invoker: "public",
+    cors: false,
+  },
+  async (request, response) => {
+    response.set("Cache-Control", "no-store");
+
+    if (request.method !== "GET") {
+      response.status(405).json({error: "METHOD_NOT_ALLOWED"});
+      return;
+    }
+
+    try {
+      await requireAdmin(request);
+
+      const doc =
+        await db.collection("config").doc("app").get();
+
+      response.status(200).json({
+        config:
+          doc.exists
+            ? doc.data()
+            : {
+                latestVersion: "",
+                minimumVersion: "",
+                premiumEnabled: false,
+                googleDriveEnabled: false,
+                oneDriveEnabled: false,
+                maintenanceMessage: "",
+              },
+      });
+    }
+    catch (error: any) {
+      sendAdminError(response, error);
+    }
+  });
+
+export const updateAdminConfig = onRequest(
+  {
+    region: "asia-south1",
+    invoker: "public",
+    cors: false,
+  },
+  async (request, response) => {
+    response.set("Cache-Control", "no-store");
+
+    if (request.method !== "POST") {
+      response.status(405).json({error: "METHOD_NOT_ALLOWED"});
+      return;
+    }
+
+    try {
+      const admin = await requireAdmin(request);
+
+      const incoming =
+        request.body && typeof request.body === "object"
+          ? request.body
+          : {};
+
+      const patch: Record<string, unknown> = {};
+
+      for (const [key, value] of Object.entries(incoming)) {
+        if (!adminConfigKeys.has(key)) {
+          continue;
+        }
+
+        if (key.endsWith("Enabled") && typeof value === "boolean") {
+          patch[key] = value;
+          continue;
+        }
+
+        if (typeof value === "string") {
+          patch[key] = value.substring(0, 500);
+        }
+      }
+
+      if (Object.keys(patch).length === 0) {
+        throw new Error("INVALID_REQUEST");
+      }
+
+      patch.updatedAt = FieldValue.serverTimestamp();
+      patch.updatedByUid = admin.uid;
+
+      await db.collection("config").doc("app").set(
+        patch,
+        {merge: true});
+
+      response.status(200).json({ok: true});
+    }
+    catch (error: any) {
+      sendAdminError(response, error);
+    }
+  });

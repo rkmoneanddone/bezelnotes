@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bezel Admin</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header>
+  <div><h1>Bezel Admin</h1><small>Configuration & monitoring</small></div>
+  <div class="auth">
+    <span id="identity"></span>
+    <button id="signin">Sign in with Google</button>
+    <button id="signout" class="light hidden">Sign out</button>
+  </div>
+</header>
+
+<main>
+  <div id="message" class="message hidden"></div>
+
+  <section id="bootstrap" class="panel hidden">
+    <h2>Initialize admin access</h2>
+    <p>Enter the one-time bootstrap code stored in Firebase Secret Manager.</p>
+    <div class="row">
+      <input id="bootstrapCode" type="password" placeholder="Bootstrap code">
+      <button id="bootstrapButton">Grant admin access</button>
+    </div>
+  </section>
+
+  <div id="app" class="hidden">
+    <section class="stats">
+      <article><span>Users</span><strong id="usersCount">-</strong></article>
+      <article><span>Trials</span><strong id="trialCount">-</strong></article>
+      <article><span>Expired</span><strong id="expiredCount">-</strong></article>
+      <article><span>Installations</span><strong id="installCount">-</strong></article>
+    </section>
+
+    <section class="panel">
+      <div class="head">
+        <div><h2>App configuration</h2><p>Server-controlled switches.</p></div>
+        <button id="saveConfig">Save</button>
+      </div>
+
+      <div class="grid">
+        <label>Latest version<input id="latestVersion"></label>
+        <label>Minimum version<input id="minimumVersion"></label>
+        <label class="check"><input id="premiumEnabled" type="checkbox">Premium enabled</label>
+        <label class="check"><input id="googleDriveEnabled" type="checkbox">Google Drive enabled</label>
+        <label class="check"><input id="oneDriveEnabled" type="checkbox">OneDrive enabled</label>
+        <label class="wide">Maintenance message<input id="maintenanceMessage"></label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="head">
+        <div><h2>Users</h2><p>Auth, trial and entitlement monitoring. No note content.</p></div>
+        <button id="refresh" class="light">Refresh</button>
+      </div>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Email</th><th>State</th><th>Trial ends</th><th>Last sign-in</th><th></th></tr></thead>
+          <tbody id="usersBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</main>
+
+<dialog id="detailDialog">
+  <button id="closeDialog" class="x">x</button>
+  <div id="detail"></div>
+</dialog>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="/__/firebase/init.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

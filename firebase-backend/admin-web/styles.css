@@ -1,0 +1,18 @@
+*{box-sizing:border-box}body{margin:0;background:#f4f5f7;color:#2e3237;font-family:Segoe UI,Arial,sans-serif}
+button,input{font:inherit}button{border:0;border-radius:8px;padding:9px 13px;background:#30343a;color:white;cursor:pointer}
+button.light{background:#e9ebef;color:#34383e}.hidden{display:none!important}
+header{background:white;border-bottom:1px solid #e1e3e7;padding:14px 22px;display:flex;justify-content:space-between;align-items:center}
+h1{font-size:20px;margin:0}small{color:#737982}.auth{display:flex;align-items:center;gap:9px;font-size:13px}
+main{max-width:1120px;margin:auto;padding:18px}.panel,article{background:white;border:1px solid #e0e2e6;border-radius:11px}
+.panel{padding:16px;margin-bottom:14px}.panel h2{font-size:17px;margin:0}.panel p{font-size:13px;color:#737982;margin:4px 0 0}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}.stats article{padding:14px}.stats span{display:block;font-size:12px;color:#777d85}.stats strong{font-size:24px}
+.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 18px}
+label{font-size:13px;color:#555b63;display:flex;flex-direction:column;gap:6px}input{border:1px solid #ccd0d6;border-radius:7px;padding:9px;background:white}
+label.check{flex-direction:row;align-items:center}.wide{grid-column:1/-1}.row{display:flex;gap:8px;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}.tablewrap{overflow:auto}th,td{padding:10px 8px;border-bottom:1px solid #eceef1;text-align:left;white-space:nowrap}
+.state{font-weight:600}.trial,.active{color:#247144}.expired{color:#a43f3f}.grace{color:#a5681e}
+.message{padding:10px 12px;margin-bottom:12px;border-radius:8px;background:#e9f7ee;color:#245d38}
+dialog{width:min(620px,calc(100vw - 30px));border:0;border-radius:12px;padding:22px;box-shadow:0 20px 70px #0004}.x{float:right;background:transparent;color:#555;font-size:22px}
+.detail{display:grid;grid-template-columns:150px 1fr;gap:8px 12px;font-size:13px}.detail dt{color:#737982}.detail dd{margin:0;overflow-wrap:anywhere}
+.install{border-top:1px solid #eceef1;padding:9px 0;font-size:13px}
+@media(max-width:700px){header,.head{align-items:flex-start;flex-direction:column;gap:10px}.stats,.grid{grid-template-columns:1fr}.wide{grid-column:auto}}

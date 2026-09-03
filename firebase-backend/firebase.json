@@ -5,5 +5,21 @@
   },
   "firestore": {
     "rules": "firestore.rules"
+  },
+  "hosting": {
+    "public": "admin-web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {"source":"/api/bootstrap-admin","function":{"functionId":"bootstrapAdminAccess","region":"asia-south1"}},
+      {"source":"/api/admin-overview","function":{"functionId":"getAdminOverview","region":"asia-south1"}},
+      {"source":"/api/admin-users","function":{"functionId":"listAdminUsers","region":"asia-south1"}},
+      {"source":"/api/admin-user","function":{"functionId":"getAdminUser","region":"asia-south1"}},
+      {"source":"/api/admin-config","function":{"functionId":"getAdminConfig","region":"asia-south1"}},
+      {"source":"/api/admin-config-update","function":{"functionId":"updateAdminConfig","region":"asia-south1"}}
+    ]
   }
 }
