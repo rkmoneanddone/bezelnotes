@@ -243,6 +243,8 @@ public partial class SettingsWindow : Window
                 state.Email,
                 effective.State,
                 effective.DaysRemaining);
+            ApplyBackendNotification(
+                state.Notification);
         }
         catch
         {
@@ -251,6 +253,122 @@ public partial class SettingsWindow : Window
         }
     }
 
+    private void ApplyBackendNotification(
+        BackendNotification? notification)
+    {
+        if (notification is null)
+        {
+            HideBackendNotification();
+            return;
+        }
+
+        DateTimeOffset now =
+            DateTimeOffset.UtcNow;
+
+        if (notification.StartAtUtc.HasValue &&
+            notification.StartAtUtc.Value > now)
+        {
+            HideBackendNotification();
+            return;
+        }
+
+        if (notification.ExpiresAtUtc.HasValue &&
+            notification.ExpiresAtUtc.Value < now)
+        {
+            HideBackendNotification();
+            return;
+        }
+
+        string title =
+            string.IsNullOrWhiteSpace(
+                notification.Title)
+                ? "Bezel Sticky Notes"
+                : notification.Title.Trim();
+
+        string message =
+            notification.Message?.Trim()
+            ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            HideBackendNotification();
+            return;
+        }
+
+        BackendNotificationTitle.Text =
+            title;
+
+        BackendNotificationMessage.Text =
+            message;
+
+        switch (
+            notification.Type?.Trim().ToLowerInvariant())
+        {
+            case "critical":
+            case "error":
+                BackendNotificationCard.Background =
+                    new SolidColorBrush(
+                        Color.FromRgb(254, 242, 242));
+                BackendNotificationCard.BorderBrush =
+                    new SolidColorBrush(
+                        Color.FromRgb(254, 202, 202));
+                BackendNotificationAccent.Background =
+                    new SolidColorBrush(
+                        Color.FromRgb(185, 28, 28));
+                break;
+
+            case "warning":
+                BackendNotificationCard.Background =
+                    new SolidColorBrush(
+                        Color.FromRgb(255, 248, 231));
+                BackendNotificationCard.BorderBrush =
+                    new SolidColorBrush(
+                        Color.FromRgb(253, 230, 138));
+                BackendNotificationAccent.Background =
+                    new SolidColorBrush(
+                        Color.FromRgb(217, 119, 6));
+                break;
+
+            case "success":
+                BackendNotificationCard.Background =
+                    new SolidColorBrush(
+                        Color.FromRgb(240, 253, 244));
+                BackendNotificationCard.BorderBrush =
+                    new SolidColorBrush(
+                        Color.FromRgb(187, 247, 208));
+                BackendNotificationAccent.Background =
+                    new SolidColorBrush(
+                        Color.FromRgb(22, 163, 74));
+                break;
+
+            default:
+                BackendNotificationCard.Background =
+                    new SolidColorBrush(
+                        Color.FromRgb(239, 246, 255));
+                BackendNotificationCard.BorderBrush =
+                    new SolidColorBrush(
+                        Color.FromRgb(191, 219, 254));
+                BackendNotificationAccent.Background =
+                    new SolidColorBrush(
+                        Color.FromRgb(37, 99, 235));
+                break;
+        }
+
+        BackendNotificationCard.Visibility =
+            Visibility.Visible;
+    }
+
+    private void HideBackendNotification()
+    {
+        BackendNotificationTitle.Text =
+            string.Empty;
+
+        BackendNotificationMessage.Text =
+            string.Empty;
+
+        BackendNotificationCard.Visibility =
+            Visibility.Collapsed;
+    }
     private static (string State, int DaysRemaining)
         GetEffectiveAccountState(
             BackendAccountState state)
@@ -290,6 +408,7 @@ public partial class SettingsWindow : Window
 
     private void ShowAccountLoadingState()
     {
+        HideBackendNotification();
         AccountEmailText.Text =
             "Checking account...";
 
@@ -393,6 +512,7 @@ public partial class SettingsWindow : Window
 
     private void ShowLoggedOutState()
     {
+        HideBackendNotification();
         AccountActionButton.IsEnabled =
             true;
         AccountEmailText.Text =

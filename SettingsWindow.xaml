@@ -115,7 +115,44 @@
                     </StackPanel>
                 </Border>
 
-                <Border Style="{StaticResource SectionCard}">
+                                <Border x:Name="BackendNotificationCard"
+                        Visibility="Collapsed"
+                        Background="#FFF8E7"
+                        CornerRadius="10"
+                        Padding="12"
+                        Margin="0,0,0,9"
+                        BorderBrush="#33A16207"
+                        BorderThickness="1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="4"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border x:Name="BackendNotificationAccent"
+                                Grid.Column="0"
+                                Background="#D97706"
+                                CornerRadius="2"
+                                Margin="0,1,0,1"/>
+
+                        <StackPanel Grid.Column="1"
+                                    Margin="10,0,0,0">
+                            <TextBlock x:Name="BackendNotificationTitle"
+                                       Text=""
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap"/>
+
+                            <TextBlock x:Name="BackendNotificationMessage"
+                                       Text=""
+                                       Margin="0,3,0,0"
+                                       FontSize="13"
+                                       Foreground="#555B64"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+<Border Style="{StaticResource SectionCard}">
                     <StackPanel>
                         <TextBlock Text="General"
                                    FontSize="16"
