@@ -465,11 +465,7 @@ export const exchangeGoogleCode =
 // ============================================================
 // ADMIN V1 - CONFIGURATION + MONITORING
 // Custom claim admin=true is authoritative.
-// First admin setup also requires ADMIN_BOOTSTRAP_CODE.
 // ============================================================
-
-const adminBootstrapCode =
-  defineGoogleOAuthSecret("ADMIN_BOOTSTRAP_CODE");
 
 const adminAccessPassword =
   defineGoogleOAuthSecret("ADMIN_ACCESS_PASSWORD");
@@ -583,72 +579,6 @@ function sendAdminError(response: any, error: any) {
   console.error("admin function failed", error);
   response.status(500).json({error: "INTERNAL_ERROR"});
 }
-
-export const bootstrapAdminAccess = onRequest(
-  {
-    region: "asia-south1",
-    invoker: "public",
-    cors: false,
-    secrets: [adminBootstrapCode],
-  },
-  async (request, response) => {
-    response.set("Cache-Control", "no-store");
-
-    if (request.method !== "POST") {
-      response.status(405).json({error: "METHOD_NOT_ALLOWED"});
-      return;
-    }
-
-    try {
-      const decoded = await requireAdminAuth(request);
-
-      if (decoded.admin === true) {
-        response.status(200).json({admin: true, alreadyAdmin: true});
-        return;
-      }
-
-      const supplied =
-        typeof request.body?.bootstrapCode === "string"
-          ? request.body.bootstrapCode.trim()
-          : "";
-
-      const expected = adminBootstrapCode.value();
-
-      if (
-        supplied.length < 12 ||
-        expected.length < 12 ||
-        supplied !== expected
-      ) {
-        response.status(403).json({error: "INVALID_BOOTSTRAP_CODE"});
-        return;
-      }
-
-      const user = await getAuth().getUser(decoded.uid);
-      const existingClaims = user.customClaims ?? {};
-
-      await getAuth().setCustomUserClaims(user.uid, {
-        ...existingClaims,
-        admin: true,
-      });
-
-      await db.collection("adminProfiles").doc(user.uid).set(
-        {
-          uid: user.uid,
-          email: user.email ?? "",
-          admin: true,
-          grantedAt: FieldValue.serverTimestamp(),
-        },
-        {merge: true});
-
-      response.status(200).json({
-        admin: true,
-        refreshTokenRequired: true,
-      });
-    }
-    catch (error: any) {
-      sendAdminError(response, error);
-    }
-  });
 
 export const verifyAdminPassword =
   onRequest(

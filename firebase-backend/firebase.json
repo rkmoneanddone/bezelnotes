@@ -22,13 +22,6 @@
                                                       }
                                      },
                                      {
-                                         "source":  "/api/bootstrap-admin",
-                                         "function":  {
-                                                          "functionId":  "bootstrapAdminAccess",
-                                                          "region":  "asia-south1"
-                                                      }
-                                     },
-                                     {
                                          "source":  "/api/v2/dashboard",
                                          "function":  {
                                                           "functionId":  "getAdminDashboardV2",
