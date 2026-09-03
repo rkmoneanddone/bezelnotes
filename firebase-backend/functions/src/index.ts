@@ -215,8 +215,145 @@ export const bootstrapAccount = onRequest(
         };
       });
 
+      const [
+        pricingSnapshot,
+        appConfigSnapshot,
+        notificationSnapshot,
+      ] = await Promise.all([
+        db.collection("config").doc("pricing").get(),
+        db.collection("config").doc("app").get(),
+        db.collection("notifications")
+          .where("active", "==", true)
+          .limit(20)
+          .get(),
+      ]);
+
+      const pricingData =
+        pricingSnapshot.exists
+          ? pricingSnapshot.data() ?? {}
+          : {};
+
+      const appConfigData =
+        appConfigSnapshot.exists
+          ? appConfigSnapshot.data() ?? {}
+          : {};
+
+      const nowMs = Date.now();
+
+      const activeNotification: any =
+        notificationSnapshot.docs
+          .map((doc): any => ({
+            id: doc.id,
+            ...(doc.data() as Record<string, any>),
+          }))
+          .filter((item: any) => {
+            const starts =
+              item.startAt instanceof Timestamp
+                ? item.startAt.toMillis()
+                : 0;
+
+            const expires =
+              item.expiresAt instanceof Timestamp
+                ? item.expiresAt.toMillis()
+                : Number.MAX_SAFE_INTEGER;
+
+            return starts <= nowMs && expires >= nowMs;
+          })
+          .sort((a: any, b: any) => {
+            const aStart =
+              a.startAt instanceof Timestamp
+                ? a.startAt.toMillis()
+                : 0;
+
+            const bStart =
+              b.startAt instanceof Timestamp
+                ? b.startAt.toMillis()
+                : 0;
+
+            return bStart - aStart;
+          })[0] ?? null;
+
       response.set("Cache-Control", "no-store");
-      response.status(200).json(result);
+      response.status(200).json({
+        ...result,
+        serverRefreshedAtUtc:
+          new Date().toISOString(),
+        pricing: {
+          trialDays:
+            Number.isInteger(pricingData.trialDays)
+              ? Number(pricingData.trialDays)
+              : 7,
+          monthlyPriceCents:
+            Number.isInteger(pricingData.monthlyPriceCents)
+              ? Number(pricingData.monthlyPriceCents)
+              : 149,
+          yearlyPriceCents:
+            Number.isInteger(pricingData.yearlyPriceCents)
+              ? Number(pricingData.yearlyPriceCents)
+              : 599,
+          currency:
+            typeof pricingData.currency === "string"
+              ? pricingData.currency
+              : "USD",
+          monthlyPriceProtectionMonths:
+            Number.isInteger(
+              pricingData.monthlyPriceProtectionMonths)
+              ? Number(
+                  pricingData.monthlyPriceProtectionMonths)
+              : 12,
+        },
+        appConfig: {
+          latestVersion:
+            typeof appConfigData.latestVersion === "string"
+              ? appConfigData.latestVersion
+              : "",
+          minimumVersion:
+            typeof appConfigData.minimumVersion === "string"
+              ? appConfigData.minimumVersion
+              : "",
+          cloudSyncEnabled:
+            appConfigData.cloudSyncEnabled === true,
+          clientRefreshHours:
+            Number.isFinite(
+              Number(appConfigData.clientRefreshHours))
+              ? Math.min(
+                  168,
+                  Math.max(
+                    1,
+                    Number(appConfigData.clientRefreshHours)))
+              : 48,
+        },
+        notification:
+          activeNotification
+            ? {
+                id: activeNotification.id,
+                title:
+                  typeof activeNotification.title === "string"
+                    ? activeNotification.title
+                    : "",
+                message:
+                  typeof activeNotification.message === "string"
+                    ? activeNotification.message
+                    : "",
+                type:
+                  typeof activeNotification.type === "string"
+                    ? activeNotification.type
+                    : "info",
+                startAtUtc:
+                  activeNotification.startAt instanceof Timestamp
+                    ? activeNotification.startAt
+                        .toDate()
+                        .toISOString()
+                    : null,
+                expiresAtUtc:
+                  activeNotification.expiresAt instanceof Timestamp
+                    ? activeNotification.expiresAt
+                        .toDate()
+                        .toISOString()
+                    : null,
+              }
+            : null,
+      });
     } catch (error: any) {
       const code = error?.message ?? "INTERNAL_ERROR";
 

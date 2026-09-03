@@ -153,6 +153,7 @@ public partial class SettingsWindow : Window
         if (_secureSessionService.HasSavedSession)
         {
             _secureSessionService.Clear();
+            new BackendBootstrapCacheService().Clear();
             ShowLoggedOutState();
             return;
         }
@@ -229,7 +230,7 @@ public partial class SettingsWindow : Window
                 new SecureBackendService(config);
 
             BackendAccountState state =
-                await backend.BootstrapAccountAsync(
+                await backend.GetBootstrapStateAsync(
                     refreshed);
 
             ApplySignedInAccountState(

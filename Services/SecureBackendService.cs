@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
@@ -43,7 +43,33 @@ public sealed class SecureBackendService
             session.IdToken);
     }
 
-    private async Task<T> PostAuthenticatedAsync<T>(
+        public async Task<BackendAccountState> GetBootstrapStateAsync(
+        AuthSession session,
+        bool forceRefresh = false)
+    {
+        var cache =
+            new BackendBootstrapCacheService();
+
+        if (!forceRefresh)
+        {
+            BackendAccountState? cached =
+                cache.LoadFresh(
+                    session.UserId,
+                    DateTimeOffset.UtcNow);
+
+            if (cached is not null)
+            {
+                return cached;
+            }
+        }
+
+        BackendAccountState fresh =
+            await BootstrapAccountAsync(session);
+
+        cache.Save(fresh);
+        return fresh;
+    }
+private async Task<T> PostAuthenticatedAsync<T>(
         string endpoint,
         object body,
         string idToken)
