@@ -405,7 +405,7 @@ export const getActiveNotification = onRequest(
 
       const nowMs = Date.now();
 
-      const activeNotification: any =
+      const activeNotifications: any[] =
         snapshot.docs
           .map((doc): any => ({
             id: doc.id,
@@ -436,40 +436,39 @@ export const getActiveNotification = onRequest(
                 : 0;
 
             return bStart - aStart;
-          })[0] ?? null;
+          });
 
       response.status(200).json({
         checkedAtUtc: new Date().toISOString(),
-        notification:
-          activeNotification
-            ? {
-                id: activeNotification.id,
-                title:
-                  typeof activeNotification.title === "string"
-                    ? activeNotification.title
-                    : "",
-                message:
-                  typeof activeNotification.message === "string"
-                    ? activeNotification.message
-                    : "",
-                type:
-                  typeof activeNotification.type === "string"
-                    ? activeNotification.type
-                    : "info",
-                startAtUtc:
-                  activeNotification.startAt instanceof Timestamp
-                    ? activeNotification.startAt
-                        .toDate()
-                        .toISOString()
-                    : null,
-                expiresAtUtc:
-                  activeNotification.expiresAt instanceof Timestamp
-                    ? activeNotification.expiresAt
-                        .toDate()
-                        .toISOString()
-                    : null,
-              }
-            : null,
+        notifications:
+          activeNotifications.map(
+            (item: any) => ({
+              id: item.id,
+              title:
+                typeof item.title === "string"
+                  ? item.title
+                  : "",
+              message:
+                typeof item.message === "string"
+                  ? item.message
+                  : "",
+              type:
+                typeof item.type === "string"
+                  ? item.type
+                  : "info",
+              startAtUtc:
+                item.startAt instanceof Timestamp
+                  ? item.startAt
+                      .toDate()
+                      .toISOString()
+                  : null,
+              expiresAtUtc:
+                item.expiresAt instanceof Timestamp
+                  ? item.expiresAt
+                      .toDate()
+                      .toISOString()
+                  : null,
+            })),
       });
     }
     catch (error: any) {

@@ -65,14 +65,14 @@ public sealed class NotificationCacheService
     }
 
     public void Save(
-        BackendNotification? notification,
+        IReadOnlyList<BackendNotification> notifications,
         DateTimeOffset checkedAtUtc)
     {
         var envelope =
             new NotificationCacheEnvelope
             {
                 CheckedAtUtc = checkedAtUtc,
-                Notification = notification
+                Notifications = notifications.ToList()
             };
 
         File.WriteAllText(
@@ -100,11 +100,11 @@ public sealed class NotificationCacheService
 public sealed class NotificationCacheEnvelope
 {
     public DateTimeOffset CheckedAtUtc { get; init; }
-    public BackendNotification? Notification { get; init; }
+    public List<BackendNotification> Notifications { get; init; } = new();
 }
 
 public sealed class NotificationRefreshResponse
 {
     public DateTimeOffset CheckedAtUtc { get; init; }
-    public BackendNotification? Notification { get; init; }
+    public List<BackendNotification> Notifications { get; init; } = new();
 }

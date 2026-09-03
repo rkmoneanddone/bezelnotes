@@ -67,7 +67,7 @@
                       VerticalScrollBarVisibility="Auto">
             <StackPanel>
 
-                <Border Style="{StaticResource SectionCard}">
+                                <Border Style="{StaticResource SectionCard}">
                     <StackPanel>
                         <TextBlock Text="Account &amp; Plan"
                                    FontSize="16"
@@ -79,16 +79,10 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <StackPanel>
-                                <TextBlock Text="7-day free trial"
-                                           FontSize="14.5"/>
-
-                                <TextBlock x:Name="AccountEmailText"
-                                           Text="Checking account..."
-                                           Margin="0,2,12,0"
-                                           FontSize="13.5"
-                                           TextTrimming="CharacterEllipsis"/>
-                            </StackPanel>
+                            <TextBlock x:Name="PlanSummaryText"
+                                       Text="7-day free trial"
+                                       FontSize="14.5"
+                                       VerticalAlignment="Center"/>
 
                             <TextBlock x:Name="EntitlementStatusText"
                                        Grid.Column="1"
@@ -99,10 +93,18 @@
                                        VerticalAlignment="Center"/>
                         </Grid>
 
+                        <TextBlock x:Name="AccountEmailText"
+                                   Text="Checking account..."
+                                   Margin="0,5,0,0"
+                                   FontSize="13.5"
+                                   TextTrimming="CharacterEllipsis"/>
+
                         <StackPanel Orientation="Horizontal"
-                                    Margin="0,8,0,0">
+                                    HorizontalAlignment="Right"
+                                    Margin="0,9,0,0">
                             <Button x:Name="AccountActionButton"
                                     Content="Loading..."
+                                    IsEnabled="False"
                                     Click="AccountButton_Click"/>
 
                             <Button x:Name="PremiumButton"
@@ -114,44 +116,9 @@
                         </StackPanel>
                     </StackPanel>
                 </Border>
-
-                                <Border x:Name="BackendNotificationCard"
-                        Visibility="Collapsed"
-                        Background="#FFF8E7"
-                        CornerRadius="10"
-                        Padding="12"
-                        Margin="0,0,0,9"
-                        BorderBrush="#33A16207"
-                        BorderThickness="1">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="4"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-
-                        <Border x:Name="BackendNotificationAccent"
-                                Grid.Column="0"
-                                Background="#D97706"
-                                CornerRadius="2"
-                                Margin="0,1,0,1"/>
-
-                        <StackPanel Grid.Column="1"
-                                    Margin="10,0,0,0">
-                            <TextBlock x:Name="BackendNotificationTitle"
-                                       Text=""
-                                       FontSize="14"
-                                       FontWeight="SemiBold"
-                                       TextWrapping="Wrap"/>
-
-                            <TextBlock x:Name="BackendNotificationMessage"
-                                       Text=""
-                                       Margin="0,3,0,0"
-                                       FontSize="13"
-                                       Foreground="#555B64"
-                                       TextWrapping="Wrap"/>
-                        </StackPanel>
-                    </Grid>
-                </Border>
+                <StackPanel x:Name="BackendNotificationsPanel"
+                            Visibility="Collapsed"
+                            Margin="0,0,0,0"/>
 <Border Style="{StaticResource SectionCard}">
                     <StackPanel>
                         <TextBlock Text="General"

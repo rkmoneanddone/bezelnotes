@@ -216,8 +216,8 @@ public partial class SettingsWindow : Window
         if (!cache.IsRefreshDue(
                 DateTimeOffset.UtcNow))
         {
-            ApplyBackendNotification(
-                cached?.Notification);
+            ApplyBackendNotifications(
+                cached?.Notifications);
             return;
         }
 
@@ -231,18 +231,18 @@ public partial class SettingsWindow : Window
                     session);
 
             cache.Save(
-                response.Notification,
+                response.Notifications,
                 response.CheckedAtUtc == default
                     ? DateTimeOffset.UtcNow
                     : response.CheckedAtUtc);
 
-            ApplyBackendNotification(
-                response.Notification);
+            ApplyBackendNotifications(
+                response.Notifications);
         }
         catch
         {
-            ApplyBackendNotification(
-                cached?.Notification);
+            ApplyBackendNotifications(
+                cached?.Notifications);
         }
     }
     private async Task RestoreSavedAccountStateAsync()
@@ -286,8 +286,6 @@ public partial class SettingsWindow : Window
                 state.Email,
                 effective.State,
                 effective.DaysRemaining);
-            ApplyBackendNotification(
-                state.Notification);
             await RefreshNotificationIfDueAsync(
                 refreshed,
                 config);
@@ -299,120 +297,212 @@ public partial class SettingsWindow : Window
         }
     }
 
-    private void ApplyBackendNotification(
-        BackendNotification? notification)
+    private void ApplyBackendNotifications(
+        IReadOnlyList<BackendNotification>? notifications)
     {
-        if (notification is null)
-        {
-            HideBackendNotification();
-            return;
-        }
+        BackendNotificationsPanel.Children.Clear();
 
         DateTimeOffset now =
             DateTimeOffset.UtcNow;
 
-        if (notification.StartAtUtc.HasValue &&
-            notification.StartAtUtc.Value > now)
+        var active =
+            (notifications ??
+                Array.Empty<BackendNotification>())
+            .Where(notification =>
+                (!notification.StartAtUtc.HasValue ||
+                    notification.StartAtUtc.Value <= now) &&
+                (!notification.ExpiresAtUtc.HasValue ||
+                    notification.ExpiresAtUtc.Value >= now) &&
+                !string.IsNullOrWhiteSpace(
+                    notification.Message))
+            .ToList();
+
+        if (active.Count == 0)
         {
-            HideBackendNotification();
+            BackendNotificationsPanel.Visibility =
+                Visibility.Collapsed;
             return;
         }
 
-        if (notification.ExpiresAtUtc.HasValue &&
-            notification.ExpiresAtUtc.Value < now)
+        foreach (BackendNotification notification in active)
         {
-            HideBackendNotification();
-            return;
+            BackendNotificationsPanel.Children.Add(
+                BuildBackendNotificationCard(
+                    notification));
         }
 
-        string title =
-            string.IsNullOrWhiteSpace(
-                notification.Title)
-                ? "Bezel Sticky Notes"
-                : notification.Title.Trim();
-
-        string message =
-            notification.Message?.Trim()
-            ?? string.Empty;
-
-        if (string.IsNullOrWhiteSpace(message))
-        {
-            HideBackendNotification();
-            return;
-        }
-
-        BackendNotificationTitle.Text =
-            title;
-
-        BackendNotificationMessage.Text =
-            message;
-
-        switch (
-            notification.Type?.Trim().ToLowerInvariant())
-        {
-            case "critical":
-            case "error":
-                BackendNotificationCard.Background =
-                    new SolidColorBrush(
-                        Color.FromRgb(254, 242, 242));
-                BackendNotificationCard.BorderBrush =
-                    new SolidColorBrush(
-                        Color.FromRgb(254, 202, 202));
-                BackendNotificationAccent.Background =
-                    new SolidColorBrush(
-                        Color.FromRgb(185, 28, 28));
-                break;
-
-            case "warning":
-                BackendNotificationCard.Background =
-                    new SolidColorBrush(
-                        Color.FromRgb(255, 248, 231));
-                BackendNotificationCard.BorderBrush =
-                    new SolidColorBrush(
-                        Color.FromRgb(253, 230, 138));
-                BackendNotificationAccent.Background =
-                    new SolidColorBrush(
-                        Color.FromRgb(217, 119, 6));
-                break;
-
-            case "success":
-                BackendNotificationCard.Background =
-                    new SolidColorBrush(
-                        Color.FromRgb(240, 253, 244));
-                BackendNotificationCard.BorderBrush =
-                    new SolidColorBrush(
-                        Color.FromRgb(187, 247, 208));
-                BackendNotificationAccent.Background =
-                    new SolidColorBrush(
-                        Color.FromRgb(22, 163, 74));
-                break;
-
-            default:
-                BackendNotificationCard.Background =
-                    new SolidColorBrush(
-                        Color.FromRgb(239, 246, 255));
-                BackendNotificationCard.BorderBrush =
-                    new SolidColorBrush(
-                        Color.FromRgb(191, 219, 254));
-                BackendNotificationAccent.Background =
-                    new SolidColorBrush(
-                        Color.FromRgb(37, 99, 235));
-                break;
-        }
-
-        BackendNotificationCard.Visibility =
+        BackendNotificationsPanel.Visibility =
             Visibility.Visible;
     }
 
-    private void HideBackendNotification()
+    private Border BuildBackendNotificationCard(
+        BackendNotification notification)
     {
-        BackendNotificationTitle.Text =
-            string.Empty;
+        string type =
+            string.IsNullOrWhiteSpace(notification.Type)
+                ? "info"
+                : notification.Type.Trim().ToLowerInvariant();
 
-        BackendNotificationMessage.Text =
-            string.Empty;
+        Color accent;
+        Color background;
+        Color border;
 
-        BackendNotificationCard.Visibility =
+        switch (type)
+        {
+            case "critical":
+            case "error":
+                accent = Color.FromRgb(185, 28, 28);
+                background = Color.FromRgb(254, 242, 242);
+                border = Color.FromRgb(254, 202, 202);
+                break;
+
+            case "warning":
+                accent = Color.FromRgb(217, 119, 6);
+                background = Color.FromRgb(255, 248, 231);
+                border = Color.FromRgb(253, 230, 138);
+                break;
+
+            case "success":
+                accent = Color.FromRgb(22, 163, 74);
+                background = Color.FromRgb(240, 253, 244);
+                border = Color.FromRgb(187, 247, 208);
+                break;
+
+            case "update":
+                accent = Color.FromRgb(37, 99, 235);
+                background = Color.FromRgb(239, 246, 255);
+                border = Color.FromRgb(191, 219, 254);
+                break;
+
+            default:
+                type = "info";
+                accent = Color.FromRgb(37, 99, 235);
+                background = Color.FromRgb(239, 246, 255);
+                border = Color.FromRgb(191, 219, 254);
+                break;
+        }
+
+        var title =
+            new TextBlock
+            {
+                Text =
+                    string.IsNullOrWhiteSpace(notification.Title)
+                        ? "Bezel Sticky Notes"
+                        : notification.Title.Trim(),
+                FontSize = 14,
+                FontWeight = FontWeights.SemiBold,
+                TextWrapping = TextWrapping.Wrap,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+        var badge =
+            new Border
+            {
+                Background =
+                    new SolidColorBrush(
+                        Color.FromArgb(
+                            26,
+                            accent.R,
+                            accent.G,
+                            accent.B)),
+                CornerRadius = new CornerRadius(10),
+                Padding = new Thickness(8, 2, 8, 2),
+                Margin = new Thickness(8, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                Child =
+                    new TextBlock
+                    {
+                        Text =
+                            char.ToUpperInvariant(type[0]) +
+                            type[1..],
+                        FontSize = 11.5,
+                        FontWeight = FontWeights.SemiBold,
+                        Foreground =
+                            new SolidColorBrush(accent)
+                    }
+            };
+
+        var header =
+            new StackPanel
+            {
+                Orientation = Orientation.Horizontal
+            };
+
+        header.Children.Add(title);
+        header.Children.Add(badge);
+
+        var message =
+            new TextBlock
+            {
+                Text = notification.Message.Trim(),
+                Margin = new Thickness(0, 4, 0, 0),
+                FontSize = 13,
+                Foreground =
+                    new SolidColorBrush(
+                        Color.FromRgb(85, 91, 100)),
+                TextWrapping = TextWrapping.Wrap
+            };
+
+        var content =
+            new StackPanel
+            {
+                Margin = new Thickness(10, 0, 0, 0)
+            };
+
+        content.Children.Add(header);
+        content.Children.Add(message);
+
+        var grid =
+            new Grid();
+
+        grid.ColumnDefinitions.Add(
+            new ColumnDefinition
+            {
+                Width = new GridLength(4)
+            });
+
+        grid.ColumnDefinitions.Add(
+            new ColumnDefinition
+            {
+                Width =
+                    new GridLength(
+                        1,
+                        GridUnitType.Star)
+            });
+
+        var accentBar =
+            new Border
+            {
+                Background =
+                    new SolidColorBrush(accent),
+                CornerRadius = new CornerRadius(2),
+                Margin = new Thickness(0, 1, 0, 1)
+            };
+
+        Grid.SetColumn(accentBar, 0);
+        Grid.SetColumn(content, 1);
+
+        grid.Children.Add(accentBar);
+        grid.Children.Add(content);
+
+        return new Border
+        {
+            Background =
+                new SolidColorBrush(background),
+            BorderBrush =
+                new SolidColorBrush(border),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(12),
+            Margin = new Thickness(0, 0, 0, 9),
+            Child = grid
+        };
+    }
+
+    private void HideBackendNotifications()
+    {
+        BackendNotificationsPanel.Children.Clear();
+        BackendNotificationsPanel.Visibility =
             Visibility.Collapsed;
     }
     private static (string State, int DaysRemaining)
@@ -454,7 +544,7 @@ public partial class SettingsWindow : Window
 
     private void ShowAccountLoadingState()
     {
-        HideBackendNotification();
+        HideBackendNotifications();
         AccountEmailText.Text =
             "Checking account...";
 
@@ -479,6 +569,13 @@ public partial class SettingsWindow : Window
         string entitlementState,
         int trialDaysRemaining)
     {
+        PlanSummaryText.Text =
+            string.Equals(
+                entitlementState,
+                "premium",
+                StringComparison.OrdinalIgnoreCase)
+                ? "Premium plan"
+                : "7-day free trial";
         AccountActionButton.IsEnabled =
             true;
         AccountEmailText.Text =
@@ -558,7 +655,8 @@ public partial class SettingsWindow : Window
 
     private void ShowLoggedOutState()
     {
-        HideBackendNotification();
+        PlanSummaryText.Text = "7-day free trial";
+        HideBackendNotifications();
         AccountActionButton.IsEnabled =
             true;
         AccountEmailText.Text =
