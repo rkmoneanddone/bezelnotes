@@ -492,6 +492,8 @@ function hashAdminSession(token: string): string {
     .digest("hex");
 }
 
+const allowedAdminEmail = "rohitmallick85@gmail.com";
+
 async function requireAdminClaim(
   request: any
 ): Promise<any> {
@@ -500,6 +502,15 @@ async function requireAdminClaim(
 
   if (decoded.admin !== true) {
     throw new Error("ADMIN_REQUIRED");
+  }
+
+  const email =
+    typeof decoded.email === "string"
+      ? decoded.email.trim().toLowerCase()
+      : "";
+
+  if (email !== allowedAdminEmail) {
+    throw new Error("ADMIN_EMAIL_NOT_ALLOWED");
   }
 
   return decoded;
@@ -559,7 +570,13 @@ function sendAdminError(response: any, error: any) {
     return;
   }
 
-  if (code === "ADMIN_REQUIRED") {
+    if (code === "ADMIN_EMAIL_NOT_ALLOWED") {
+    response.status(403).json({
+      error: "ADMIN_EMAIL_NOT_ALLOWED",
+    });
+    return;
+  }
+if (code === "ADMIN_REQUIRED") {
     response.status(403).json({error: code});
     return;
   }
