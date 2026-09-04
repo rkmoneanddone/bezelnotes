@@ -13,6 +13,35 @@ type AdminNotificationDeps = {
   isoFromTimestamp: (value: unknown) => string | null;
 };
 
+function normalizeOptionalUtc(
+  value: unknown,
+  safeText: (value: unknown, maxLength: number) => string
+): string {
+  const text =
+    safeText(value, 64).trim();
+
+  if (!text) {
+    return "";
+  }
+
+  // Admin UI sends Date.toISOString(), which is explicit UTC.
+  // Do not accept local/ambiguous timestamps without a Z suffix.
+  const utcIsoPattern =
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
+
+  if (!utcIsoPattern.test(text)) {
+    throw new Error("INVALID_REQUEST");
+  }
+
+  const millis =
+    Date.parse(text);
+
+  if (!Number.isFinite(millis)) {
+    throw new Error("INVALID_REQUEST");
+  }
+
+  return new Date(millis).toISOString();
+}
 export function createAdminNotificationHandlers(
   deps: AdminNotificationDeps
 ) {
@@ -116,20 +145,31 @@ export function createAdminNotificationHandlers(
           throw new Error("INVALID_REQUEST");
         }
 
+        const startAtUtc =
+          normalizeOptionalUtc(
+            request.body?.startAtUtc,
+            safeText);
+
+        const expiresAtUtc =
+          normalizeOptionalUtc(
+            request.body?.expiresAtUtc,
+            safeText);
+
+        if (
+          startAtUtc &&
+          expiresAtUtc &&
+          Date.parse(startAtUtc) >= Date.parse(expiresAtUtc)
+        ) {
+          throw new Error("INVALID_REQUEST");
+        }
         const payload = {
           title,
           message,
           type,
           active:
             request.body?.active === true,
-          startAtUtc:
-            safeText(
-              request.body?.startAtUtc,
-              64),
-          expiresAtUtc:
-            safeText(
-              request.body?.expiresAtUtc,
-              64),
+          startAtUtc,
+          expiresAtUtc,
           updatedAt:
             FieldValue.serverTimestamp(),
           updatedByUid:
