@@ -5,6 +5,7 @@ import { createAdminNotificationHandlers } from "./admin/notifications";
 import { createAdminPricingHandler } from "./admin/pricing";
 import { createAdminAppConfigHandler } from "./admin/appConfig";
 import { createBootstrapAccount } from "./account/bootstrapAccount";
+import { verifyBearer } from "./auth/bearerAuth";
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import {
@@ -16,37 +17,6 @@ import {
 initializeApp();
 
 const db = getFirestore();
-
-type VerifiedUser = {
-  uid: string;
-  email: string;
-  creationTime: Date;
-};
-
-async function verifyBearer(request: any): Promise<VerifiedUser> {
-  const authorization = request.get("authorization") || "";
-
-  if (!authorization.startsWith("Bearer ")) {
-    throw new Error("UNAUTHENTICATED");
-  }
-
-  const idToken = authorization.substring("Bearer ".length).trim();
-
-  const decoded = await getAuth().verifyIdToken(idToken, true);
-  const user = await getAuth().getUser(decoded.uid);
-
-  const creationTime = new Date(user.metadata.creationTime);
-
-  if (Number.isNaN(creationTime.getTime())) {
-    throw new Error("ACCOUNT_CREATION_TIME_UNAVAILABLE");
-  }
-
-  return {
-    uid: user.uid,
-    email: user.email ?? "",
-    creationTime,
-  };
-}
 
 export const bootstrapAccount =
   createBootstrapAccount(db, verifyBearer);
