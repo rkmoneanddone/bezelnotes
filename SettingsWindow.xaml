@@ -116,9 +116,23 @@
                         </StackPanel>
                     </StackPanel>
                 </Border>
-                <StackPanel x:Name="BackendNotificationsPanel"
-                            Visibility="Collapsed"
-                            Margin="0,0,0,0"/>
+                <Border Style="{StaticResource SectionCard}">
+                    <StackPanel>
+                        <TextBlock Text="Notifications"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"/>
+
+                        <TextBlock x:Name="NotificationStatusText"
+                                   Text="Loading..."
+                                   Margin="0,7,0,0"
+                                   FontSize="13.5"
+                                   Foreground="#646A73"/>
+
+                        <StackPanel x:Name="BackendNotificationsPanel"
+                                    Visibility="Collapsed"
+                                    Margin="0,7,0,0"/>
+                    </StackPanel>
+                </Border>
 <Border Style="{StaticResource SectionCard}">
                     <StackPanel>
                         <TextBlock Text="General"

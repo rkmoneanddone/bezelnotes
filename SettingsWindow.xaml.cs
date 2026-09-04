@@ -207,6 +207,7 @@ public partial class SettingsWindow : Window
         AuthSession session,
         FirebaseClientConfig config)
     {
+        ShowNotificationLoadingState();
         var cache =
             new NotificationCacheService();
 
@@ -241,8 +242,15 @@ public partial class SettingsWindow : Window
         }
         catch
         {
-            ApplyBackendNotifications(
-                cached?.Notifications);
+            if (cached is not null)
+            {
+                ApplyBackendNotifications(
+                    cached.Notifications);
+            }
+            else
+            {
+                ShowNotificationErrorState();
+            }
         }
     }
     private async Task RestoreSavedAccountStateAsync()
@@ -297,6 +305,29 @@ public partial class SettingsWindow : Window
         }
     }
 
+    private void ShowNotificationLoadingState()
+    {
+        BackendNotificationsPanel.Children.Clear();
+        BackendNotificationsPanel.Visibility =
+            Visibility.Collapsed;
+
+        NotificationStatusText.Text =
+            "Loading...";
+        NotificationStatusText.Visibility =
+            Visibility.Visible;
+    }
+
+    private void ShowNotificationErrorState()
+    {
+        BackendNotificationsPanel.Children.Clear();
+        BackendNotificationsPanel.Visibility =
+            Visibility.Collapsed;
+
+        NotificationStatusText.Text =
+            "Unable to load notifications";
+        NotificationStatusText.Visibility =
+            Visibility.Visible;
+    }
     private void ApplyBackendNotifications(
         IReadOnlyList<BackendNotification>? notifications)
     {
@@ -321,8 +352,16 @@ public partial class SettingsWindow : Window
         {
             BackendNotificationsPanel.Visibility =
                 Visibility.Collapsed;
+
+            NotificationStatusText.Text =
+                "Nothing to show";
+            NotificationStatusText.Visibility =
+                Visibility.Visible;
             return;
         }
+
+        NotificationStatusText.Visibility =
+            Visibility.Collapsed;
 
         foreach (BackendNotification notification in active)
         {
