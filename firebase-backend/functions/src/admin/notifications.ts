@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { FieldValue } from "firebase-admin/firestore";
 import { onRequest } from "firebase-functions/v2/https";
 
@@ -130,6 +131,9 @@ export function createAdminNotificationHandlers(
 
         const id =
           safeText(request.body?.id, 160);
+
+        const notificationRequestId =
+          safeText(request.body?.requestId, 128);
         const title =
           safeText(request.body?.title, 100);
         const message =
@@ -190,21 +194,58 @@ export function createAdminNotificationHandlers(
           return;
         }
 
+        if (
+          !/^[A-Za-z0-9._:-]{16,128}$/.test(
+            notificationRequestId)
+        ) {
+          throw new Error("INVALID_REQUEST");
+        }
+
+        const deterministicId =
+          createHash("sha256")
+            .update(
+              `${admin.uid}:${notificationRequestId}`,
+              "utf8")
+            .digest("hex");
+
         const ref =
           db.collection("notifications")
-            .doc();
+            .doc(deterministicId);
 
-        await ref.set({
-          ...payload,
-          createdAt:
-            FieldValue.serverTimestamp(),
-          createdByUid:
-            admin.uid,
-        });
+        const result =
+          await db.runTransaction(
+            async (transaction) => {
+              const existing =
+                await transaction.get(ref);
+
+              if (existing.exists) {
+                return {
+                  created: false,
+                };
+              }
+
+              transaction.create(
+                ref,
+                {
+                  ...payload,
+                  requestId:
+                    notificationRequestId,
+                  createdAt:
+                    FieldValue.serverTimestamp(),
+                  createdByUid:
+                    admin.uid,
+                });
+
+              return {
+                created: true,
+              };
+            });
 
         response.status(200).json({
           ok: true,
           id: ref.id,
+          duplicateRetry:
+            !result.created,
         });
       }
       catch (error: any) {
