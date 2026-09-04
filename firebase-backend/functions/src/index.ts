@@ -1,5 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { onRequest } from "firebase-functions/v2/https";
+import { selectActiveNotifications } from "./notifications/activeNotifications";
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import {
@@ -403,95 +404,20 @@ export const getActiveNotification = onRequest(
           .limit(20)
           .get();
 
-      const nowMs = Date.now();
+      const records =
+        snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Record<string, unknown>),
+        }));
 
-      const parseUtcMillis = (
-        value: unknown,
-        fallback: number
-      ): number => {
-        if (typeof value !== "string" ||
-            value.trim().length === 0) {
-          return fallback;
-        }
-
-        const parsed = Date.parse(value);
-
-        return Number.isNaN(parsed)
-          ? fallback
-          : parsed;
-      };
-
-      const normalizeUtc = (
-        value: unknown
-      ): string | null => {
-        if (typeof value !== "string" ||
-            value.trim().length === 0) {
-          return null;
-        }
-
-        const parsed = new Date(value);
-
-        return Number.isNaN(parsed.getTime())
-          ? null
-          : parsed.toISOString();
-      };
-
-      const activeNotifications: any[] =
-        snapshot.docs
-          .map((doc): any => ({
-            id: doc.id,
-            ...(doc.data() as Record<string, any>),
-          }))
-          .filter((item: any) => {
-            const starts =
-              parseUtcMillis(
-                item.startAtUtc,
-                0);
-
-            const expires =
-              parseUtcMillis(
-                item.expiresAtUtc,
-                Number.MAX_SAFE_INTEGER);
-
-            return starts <= nowMs && expires >= nowMs;
-          })
-          .sort((a: any, b: any) => {
-            const aStart =
-              parseUtcMillis(
-                a.startAtUtc,
-                0);
-
-            const bStart =
-              parseUtcMillis(
-                b.startAtUtc,
-                0);
-
-            return bStart - aStart;
-          });
+      const notifications =
+        selectActiveNotifications(
+          records,
+          Date.now());
 
       response.status(200).json({
         checkedAtUtc: new Date().toISOString(),
-        notifications:
-          activeNotifications.map(
-            (item: any) => ({
-              id: item.id,
-              title:
-                typeof item.title === "string"
-                  ? item.title
-                  : "",
-              message:
-                typeof item.message === "string"
-                  ? item.message
-                  : "",
-              type:
-                typeof item.type === "string"
-                  ? item.type
-                  : "info",
-              startAtUtc:
-                normalizeUtc(item.startAtUtc),
-              expiresAtUtc:
-                normalizeUtc(item.expiresAtUtc),
-            })),
+        notifications,
       });
     }
     catch (error: any) {
