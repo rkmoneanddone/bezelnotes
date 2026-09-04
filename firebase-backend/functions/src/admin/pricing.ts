@@ -17,6 +17,35 @@ type AdminPricingDeps = {
   safeText: (value: unknown, maxLength: number) => string;
 };
 
+type PricingValues = {
+  trialDays: number;
+  monthlyPriceCents: number;
+  yearlyPriceCents: number;
+  currency: string;
+  monthlyPriceProtectionMonths: number;
+};
+
+function samePricingValues(
+  current: FirebaseFirestore.DocumentData | undefined,
+  next: PricingValues
+): boolean {
+  if (!current) {
+    return false;
+  }
+
+  return (
+    Number(current.trialDays) === next.trialDays &&
+    Number(current.monthlyPriceCents) ===
+      next.monthlyPriceCents &&
+    Number(current.yearlyPriceCents) ===
+      next.yearlyPriceCents &&
+    String(current.currency || "").toUpperCase() ===
+      next.currency &&
+    Number(current.monthlyPriceProtectionMonths) ===
+      next.monthlyPriceProtectionMonths
+  );
+}
+
 export function createAdminPricingHandler(
   deps: AdminPricingDeps
 ) {
@@ -41,12 +70,10 @@ export function createAdminPricingHandler(
       }
 
       try {
-        // Rule: authorization before authoritative writes.
         const admin =
           await requireAdmin(request);
 
-        // Rule: server-side bounded validation.
-        const pricing = {
+        const pricingValues: PricingValues = {
           trialDays:
             boundedInteger(
               request.body?.trialDays,
@@ -77,43 +104,72 @@ export function createAdminPricingHandler(
               12,
               1,
               36),
-
-          updatedAt:
-            FieldValue.serverTimestamp(),
-
-          updatedByUid:
-            admin.uid,
         };
 
-        const history =
-          db.collection("pricingHistory")
-            .doc();
+        const pricingRef =
+          db.collection("config")
+            .doc("pricing");
 
-        // Rule: current pricing + pricing history must succeed/fail together.
-        const batch = db.batch();
+        const result =
+          await db.runTransaction(
+            async (transaction) => {
+              const currentSnapshot =
+                await transaction.get(pricingRef);
 
-        batch.set(
-          db.collection("config").doc("pricing"),
-          pricing,
-          {merge: true});
+              const current =
+                currentSnapshot.exists
+                  ? currentSnapshot.data()
+                  : undefined;
 
-        batch.set(
-          history,
-          {
-            ...pricing,
-            createdAt:
-              FieldValue.serverTimestamp(),
-          });
+              // Reliability rule:
+              // identical retries are successful no-ops.
+              if (samePricingValues(
+                    current,
+                    pricingValues)) {
+                return {
+                  changed: false,
+                  historyId: null as string | null,
+                };
+              }
 
-        await batch.commit();
+              const history =
+                db.collection("pricingHistory")
+                  .doc();
+
+              const pricing = {
+                ...pricingValues,
+                updatedAt:
+                  FieldValue.serverTimestamp(),
+                updatedByUid:
+                  admin.uid,
+              };
+
+              transaction.set(
+                pricingRef,
+                pricing,
+                {merge: true});
+
+              transaction.set(
+                history,
+                {
+                  ...pricing,
+                  createdAt:
+                    FieldValue.serverTimestamp(),
+                });
+
+              return {
+                changed: true,
+                historyId: history.id as string | null,
+              };
+            });
 
         response.status(200).json({
           ok: true,
-          historyId: history.id,
+          historyId: result.historyId,
+          unchanged: !result.changed,
         });
       }
       catch (error: any) {
-        // Rule: centralized structured error mapping.
         sendAdminError(response, error);
       }
     });

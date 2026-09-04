@@ -19,32 +19,28 @@ export function boundedInteger(
   minimum: number,
   maximum: number
 ): number {
-  const numeric = Number(value);
-
-  const normalized =
-    Number.isFinite(numeric)
-      ? Math.floor(numeric)
-      : fallback;
+  // Preserve the original endpoint behavior:
+  // Number(value) || fallback
+  const numeric =
+    Number(value) || fallback;
 
   return Math.min(
     maximum,
     Math.max(
       minimum,
-      normalized));
+      Math.floor(numeric)));
 }
 
 export function boundedPositiveMoneyCents(
   value: unknown,
   fallback: number
 ): number {
-  const numeric = Number(value);
-
-  const normalized =
-    Number.isFinite(numeric)
-      ? Math.round(numeric)
-      : fallback;
+  // Preserve the original endpoint behavior:
+  // Number(value) || fallback
+  const numeric =
+    Number(value) || fallback;
 
   return Math.max(
     1,
-    normalized);
+    Math.round(numeric));
 }
