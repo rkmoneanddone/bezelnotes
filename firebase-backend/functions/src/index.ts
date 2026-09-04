@@ -1,6 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { onRequest } from "firebase-functions/v2/https";
 import { selectActiveNotifications } from "./notifications/activeNotifications";
+import { createAdminNotificationHandlers } from "./admin/notifications";
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import {
@@ -1294,35 +1295,20 @@ export const listAdminPaymentsV2 = onRequest(
     }catch(error:any){sendAdminError(response,error);}
   });
 
-export const listAdminNotificationsV2 = onRequest(
-  { region:"asia-south1", invoker:"public", cors:false },
-  async (request,response)=>{
-    response.set("Cache-Control","no-store");
-    if(request.method!=="GET"){response.status(405).json({error:"METHOD_NOT_ALLOWED"});return;}
-    try{
-      await requireAdmin(request);
-      const snap=await db.collection("notifications").orderBy("createdAt","desc").limit(50).get();
-      response.status(200).json({notifications:snap.docs.map(doc=>{const d=doc.data();return{
-        id:doc.id,title:safeText(d.title,100),message:safeText(d.message,500),type:safeText(d.type,24)||"info",active:d.active===true,
-        startAtUtc:safeText(d.startAtUtc,64),expiresAtUtc:safeText(d.expiresAtUtc,64),createdAtUtc:isoFromTimestamp(d.createdAt)
-      }})});
-    }catch(error:any){sendAdminError(response,error);}
+const adminNotificationHandlers =
+  createAdminNotificationHandlers({
+    db,
+    requireAdmin,
+    sendAdminError,
+    safeText,
+    isoFromTimestamp,
   });
 
-export const saveAdminNotificationV2 = onRequest(
-  { region:"asia-south1", invoker:"public", cors:false },
-  async (request,response)=>{
-    response.set("Cache-Control","no-store");
-    if(request.method!=="POST"){response.status(405).json({error:"METHOD_NOT_ALLOWED"});return;}
-    try{
-      const admin=await requireAdmin(request);const id=safeText(request.body?.id,160);const title=safeText(request.body?.title,100);const message=safeText(request.body?.message,500);const type=safeText(request.body?.type,24);
-      if(title.length<2||message.length<2||!["info","update","warning"].includes(type))throw new Error("INVALID_REQUEST");
-      const payload={title,message,type,active:request.body?.active===true,startAtUtc:safeText(request.body?.startAtUtc,64),expiresAtUtc:safeText(request.body?.expiresAtUtc,64),updatedAt:FieldValue.serverTimestamp(),updatedByUid:admin.uid};
-      if(id){await db.collection("notifications").doc(id).set(payload,{merge:true});response.status(200).json({ok:true,id});return;}
-      const ref=db.collection("notifications").doc();await ref.set({...payload,createdAt:FieldValue.serverTimestamp(),createdByUid:admin.uid});response.status(200).json({ok:true,id:ref.id});
-    }catch(error:any){sendAdminError(response,error);}
-  });
+export const listAdminNotificationsV2 =
+  adminNotificationHandlers.listAdminNotificationsV2;
 
+export const saveAdminNotificationV2 =
+  adminNotificationHandlers.saveAdminNotificationV2;
 export const updateAdminPricingV2 = onRequest(
   { region:"asia-south1", invoker:"public", cors:false },
   async (request,response)=>{
