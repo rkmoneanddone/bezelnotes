@@ -138,6 +138,15 @@ export const bootstrapAccount = onRequest(
         } else {
           const data = entitlementSnapshot.data() ?? {};
 
+          const storedTrialDaysAtSignup =
+            Number.isInteger(data.trialDaysAtSignup)
+              ? Math.min(
+                  90,
+                  Math.max(
+                    1,
+                    Number(data.trialDaysAtSignup)))
+              : TRIAL_DAYS;
+
           trialStartedAt =
             data.trialStartedAt instanceof Timestamp
               ? data.trialStartedAt
@@ -147,8 +156,9 @@ export const bootstrapAccount = onRequest(
             data.trialEndsAt instanceof Timestamp
               ? data.trialEndsAt
               : Timestamp.fromMillis(
-                  user.creationTime.getTime() +
-                  TRIAL_DAYS * 24 * 60 * 60 * 1000);
+                  trialStartedAt.toMillis() +
+                  storedTrialDaysAtSignup *
+                    24 * 60 * 60 * 1000);
 
           entitlementState =
             typeof data.entitlementState === "string"
@@ -162,6 +172,25 @@ export const bootstrapAccount = onRequest(
             typeof data.planCode === "string"
               ? data.planCode
               : "none";
+
+          // Server authority: an unpaid trial cannot remain active
+          // after its authoritative trialEndsAt timestamp.
+          if (
+            !premiumEnabled &&
+            entitlementState === "trial" &&
+            now.toMillis() >= trialEndsAt.toMillis()
+          ) {
+            entitlementState = "expired";
+
+            transaction.set(
+              entitlementRef,
+              {
+                entitlementState: "expired",
+                updatedAt:
+                  FieldValue.serverTimestamp(),
+              },
+              { merge: true });
+          }
         }
 
         transaction.set(
