@@ -2,6 +2,8 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { onRequest } from "firebase-functions/v2/https";
 import { selectActiveNotifications } from "./notifications/activeNotifications";
 import { createAdminNotificationHandlers } from "./admin/notifications";
+import { createAdminPricingHandler } from "./admin/pricing";
+import { createAdminAppConfigHandler } from "./admin/appConfig";
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import {
@@ -1309,27 +1311,18 @@ export const listAdminNotificationsV2 =
 
 export const saveAdminNotificationV2 =
   adminNotificationHandlers.saveAdminNotificationV2;
-export const updateAdminPricingV2 = onRequest(
-  { region:"asia-south1", invoker:"public", cors:false },
-  async (request,response)=>{
-    response.set("Cache-Control","no-store");
-    if(request.method!=="POST"){response.status(405).json({error:"METHOD_NOT_ALLOWED"});return;}
-    try{
-      const admin=await requireAdmin(request);
-      const pricing={trialDays:Math.min(90,Math.max(1,Math.floor(Number(request.body?.trialDays)||7))),monthlyPriceCents:Math.max(1,Math.round(Number(request.body?.monthlyPriceCents)||149)),yearlyPriceCents:Math.max(1,Math.round(Number(request.body?.yearlyPriceCents)||599)),currency:(safeText(request.body?.currency,8)||"USD").toUpperCase(),monthlyPriceProtectionMonths:Math.min(36,Math.max(1,Math.floor(Number(request.body?.monthlyPriceProtectionMonths)||12))),updatedAt:FieldValue.serverTimestamp(),updatedByUid:admin.uid};
-      const history=db.collection("pricingHistory").doc();const batch=db.batch();batch.set(db.collection("config").doc("pricing"),pricing,{merge:true});batch.set(history,{...pricing,createdAt:FieldValue.serverTimestamp()});await batch.commit();
-      response.status(200).json({ok:true,historyId:history.id});
-    }catch(error:any){sendAdminError(response,error);}
+export const updateAdminPricingV2 =
+  createAdminPricingHandler({
+    db,
+    requireAdmin,
+    sendAdminError,
+    safeText,
   });
 
-export const updateAdminAppConfigV2 = onRequest(
-  { region:"asia-south1", invoker:"public", cors:false },
-  async (request,response)=>{
-    response.set("Cache-Control","no-store");
-    if(request.method!=="POST"){response.status(405).json({error:"METHOD_NOT_ALLOWED"});return;}
-    try{
-      const admin=await requireAdmin(request);const hrs=Math.min(168,Math.max(12,Math.floor(Number(request.body?.clientRefreshHours)||48)));
-      await db.collection("config").doc("app").set({latestVersion:safeText(request.body?.latestVersion,32),minimumVersion:safeText(request.body?.minimumVersion,32),cloudSyncEnabled:request.body?.cloudSyncEnabled===true,clientRefreshHours:hrs,updatedAt:FieldValue.serverTimestamp(),updatedByUid:admin.uid},{merge:true});
-      response.status(200).json({ok:true});
-    }catch(error:any){sendAdminError(response,error);}
+export const updateAdminAppConfigV2 =
+  createAdminAppConfigHandler({
+    db,
+    requireAdmin,
+    sendAdminError,
+    safeText,
   });
