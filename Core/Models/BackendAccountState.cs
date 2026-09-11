@@ -14,6 +14,7 @@ public sealed class BackendAccountState
     public DateTimeOffset? ServerRefreshedAtUtc { get; init; }
     public BackendPricing Pricing { get; init; } = new();
     public BackendAppConfig AppConfig { get; init; } = new();
+    public BackendPaymentConfig PaymentConfig { get; init; } = new();
     public BackendNotification? Notification { get; init; }
 }
 
@@ -30,7 +31,10 @@ public sealed class BackendAppConfig
 {
     public string LatestVersion { get; init; } = string.Empty;
     public string MinimumVersion { get; init; } = string.Empty;
-    public bool CloudSyncEnabled { get; init; }
+    public string UpdateMessage { get; init; } = string.Empty;
+    public string UpdateUrl { get; init; } = string.Empty;
+    public bool ForceUpdate { get; init; }
+    public bool PaymentsEnabled { get; init; }    public bool CloudSyncEnabled { get; init; }
     public int ClientRefreshHours { get; init; } = 48;
 }
 

@@ -5,6 +5,8 @@ import {
   type Firestore,
 } from "firebase-admin/firestore";
 
+import { normalizePaymentConfig } from "../payments/paymentConfig";
+
 type VerifiedUser = {
   uid: string;
   email: string;
@@ -243,6 +245,9 @@ function requireInstallationId(value: unknown): string {
           ? appConfigSnapshot.data() ?? {}
           : {};
 
+      const paymentConfig =
+        normalizePaymentConfig(
+          appConfigData.paymentConfig);
       const nowMs = Date.now();
 
       const activeNotification: any =
@@ -316,7 +321,18 @@ function requireInstallationId(value: unknown): string {
             typeof appConfigData.minimumVersion === "string"
               ? appConfigData.minimumVersion
               : "",
-          cloudSyncEnabled:
+          updateMessage:
+            typeof appConfigData.updateMessage === "string"
+              ? appConfigData.updateMessage.substring(0, 500)
+              : "",
+          updateUrl:
+            typeof appConfigData.updateUrl === "string"
+              ? appConfigData.updateUrl.substring(0, 500)
+              : "",
+          forceUpdate:
+            appConfigData.forceUpdate === true,
+          paymentsEnabled:
+            appConfigData.paymentsEnabled === true,          cloudSyncEnabled:
             appConfigData.cloudSyncEnabled === true,
           clientRefreshHours:
             Number.isFinite(
@@ -328,6 +344,7 @@ function requireInstallationId(value: unknown): string {
                     Number(appConfigData.clientRefreshHours)))
               : 48,
         },
+        paymentConfig,
         notification:
           activeNotification
             ? {

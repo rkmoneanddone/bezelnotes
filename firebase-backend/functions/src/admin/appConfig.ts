@@ -66,6 +66,21 @@ export function createAdminAppConfigHandler(
                   request.body?.minimumVersion,
                   32),
 
+              updateMessage:
+                safeText(
+                  request.body?.updateMessage,
+                  500),
+
+              updateUrl:
+                safeText(
+                  request.body?.updateUrl,
+                  500),
+
+              forceUpdate:
+                request.body?.forceUpdate === true,
+
+              paymentsEnabled:
+                request.body?.paymentsEnabled === true,
               cloudSyncEnabled:
                 request.body?.cloudSyncEnabled === true,
 

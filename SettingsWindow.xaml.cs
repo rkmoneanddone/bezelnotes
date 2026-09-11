@@ -656,6 +656,7 @@ private void ShowNotificationLoadingState()
         PlanSummaryText.Text =
             planCode.ToLowerInvariant() switch
             {
+                "six_month" => "6-month plan",
                 "monthly" => "Monthly plan",
                 "yearly" => "Yearly plan",
                 _ when string.Equals(
