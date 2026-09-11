@@ -155,8 +155,13 @@ public sealed class FirebaseAuthService
 
         if (!response.IsSuccessStatusCode)
         {
+            if (IsDefinitiveSavedSessionFailure(body))
+            {
+                throw new SavedSessionInvalidException();
+            }
+
             throw new InvalidOperationException(
-                "Saved account session is no longer valid.");
+                "Unable to refresh the saved account session right now.");
         }
 
         using JsonDocument document =
@@ -206,7 +211,40 @@ public sealed class FirebaseAuthService
                         expiresInSeconds - 60))
         };
     }
-    private async Task<AuthSession> AuthenticateAsync(
+        private static bool IsDefinitiveSavedSessionFailure(
+        string responseBody)
+    {
+        try
+        {
+            using JsonDocument document =
+                JsonDocument.Parse(responseBody);
+
+            if (!document.RootElement.TryGetProperty(
+                    "error",
+                    out JsonElement errorElement) ||
+                !errorElement.TryGetProperty(
+                    "message",
+                    out JsonElement messageElement))
+            {
+                return false;
+            }
+
+            string code =
+                messageElement.GetString()
+                ?? string.Empty;
+
+            return code is
+                "INVALID_REFRESH_TOKEN" or
+                "TOKEN_EXPIRED" or
+                "USER_DISABLED" or
+                "USER_NOT_FOUND";
+        }
+        catch
+        {
+            return false;
+        }
+    }
+private async Task<AuthSession> AuthenticateAsync(
         string operation,
         string email,
         string password)
@@ -280,5 +318,13 @@ public sealed class FirebaseAuthService
         {
             return "Firebase authentication failed.";
         }
+    }
+}
+
+public sealed class SavedSessionInvalidException : Exception
+{
+    public SavedSessionInvalidException()
+        : base("Saved account session is no longer valid.")
+    {
     }
 }

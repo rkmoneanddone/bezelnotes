@@ -293,19 +293,63 @@ public partial class SettingsWindow : Window
             ApplySignedInAccountState(
                 state.Email,
                 effective.State,
-                effective.DaysRemaining);
+                effective.DaysRemaining,
+                state.PlanCode);
+
             await RefreshNotificationIfDueAsync(
                 refreshed,
                 config);
         }
-        catch
+        catch (SavedSessionInvalidException)
         {
             _secureSessionService.Clear();
+            new NotificationCacheService().Clear();
+            new BackendBootstrapCacheService().Clear();
             ShowLoggedOutState();
         }
-    }
+        catch
+        {
+            BackendAccountState? cached =
+                new BackendBootstrapCacheService()
+                    .LoadFresh(
+                        persisted.UserId,
+                        DateTimeOffset.UtcNow);
 
-    private void ShowNotificationLoadingState()
+            if (cached is not null)
+            {
+                var effective =
+                    GetEffectiveAccountState(
+                        cached);
+
+                ApplySignedInAccountState(
+                    string.IsNullOrWhiteSpace(cached.Email)
+                        ? persisted.Email
+                        : cached.Email,
+                    effective.State,
+                    effective.DaysRemaining,
+                    cached.PlanCode);
+            }
+            else
+            {
+                ShowAccountOfflineState(
+                    persisted.Email);
+            }
+
+            NotificationCacheEnvelope? notificationCache =
+                new NotificationCacheService().Load();
+
+            if (notificationCache is not null)
+            {
+                ApplyBackendNotifications(
+                    notificationCache.Notifications);
+            }
+            else
+            {
+                ShowNotificationErrorState();
+            }
+        }
+    }
+private void ShowNotificationLoadingState()
     {
         BackendNotificationsPanel.Children.Clear();
         BackendNotificationsPanel.Visibility =
@@ -606,16 +650,26 @@ public partial class SettingsWindow : Window
     public void ApplySignedInAccountState(
         string email,
         string entitlementState,
-        int trialDaysRemaining)
+        int trialDaysRemaining,
+        string planCode = "none")
     {
         PlanSummaryText.Text =
-            string.Equals(
-                entitlementState,
-                "premium",
-                StringComparison.OrdinalIgnoreCase)
-                ? "Premium plan"
-                : "7-day free trial";
-        AccountActionButton.IsEnabled =
+            planCode.ToLowerInvariant() switch
+            {
+                "monthly" => "Monthly plan",
+                "yearly" => "Yearly plan",
+                _ when string.Equals(
+                    entitlementState,
+                    "active",
+                    StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(
+                        entitlementState,
+                        "grace",
+                        StringComparison.OrdinalIgnoreCase)
+                    => "Premium plan",
+                _ => "7-day free trial"
+            };
+AccountActionButton.IsEnabled =
             true;
         AccountEmailText.Text =
             $"Signed in as {email}";
@@ -692,7 +746,34 @@ public partial class SettingsWindow : Window
         }
     }
 
-    private void ShowLoggedOutState()
+        private void ShowAccountOfflineState(
+        string email)
+    {
+        PlanSummaryText.Text =
+            "Account status unavailable";
+
+        AccountActionButton.IsEnabled =
+            true;
+
+        AccountEmailText.Text =
+            string.IsNullOrWhiteSpace(email)
+                ? "Saved account"
+                : $"Signed in as {email}";
+
+        EntitlementStatusText.Text =
+            "Connection unavailable";
+
+        EntitlementStatusText.Foreground =
+            new SolidColorBrush(
+                Color.FromRgb(
+                    180,
+                    104,
+                    24));
+
+        AccountActionButton.Content =
+            "Logout";
+    }
+private void ShowLoggedOutState()
     {
         PlanSummaryText.Text = "7-day free trial";
         HideBackendNotifications();

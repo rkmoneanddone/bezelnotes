@@ -207,7 +207,8 @@ public partial class AccountWindow : Window
             settingsWindow.ApplySignedInAccountState(
                 state.Email,
                 state.EntitlementState,
-                state.TrialDaysRemaining);
+                state.TrialDaysRemaining,
+                state.PlanCode);
         }
 
         await CloseAfterSuccessfulSignInAsync();
