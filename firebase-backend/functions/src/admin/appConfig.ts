@@ -4,6 +4,9 @@ import {
   boundedInteger,
   requirePostMethod,
 } from "./mutationRules";
+import {
+  normalizePaymentConfig,
+} from "../payments/paymentConfig";
 
 type AdminIdentity = {
   uid: string;
@@ -40,7 +43,6 @@ export function createAdminAppConfigHandler(
       }
 
       try {
-        // Rule: authorization before authoritative write.
         const admin =
           await requireAdmin(request);
 
@@ -51,56 +53,73 @@ export function createAdminAppConfigHandler(
             12,
             168);
 
-        // Rule: one authoritative document, merge semantics.
+        const update: Record<string, unknown> = {
+          latestVersion:
+            safeText(
+              request.body?.latestVersion,
+              32),
+
+          minimumVersion:
+            safeText(
+              request.body?.minimumVersion,
+              32),
+
+          updateMessage:
+            safeText(
+              request.body?.updateMessage,
+              500),
+
+          updateUrl:
+            safeText(
+              request.body?.updateUrl,
+              500),
+
+          forceUpdate:
+            request.body?.forceUpdate === true,
+
+          paymentsEnabled:
+            request.body?.paymentsEnabled === true,
+
+          cloudSyncEnabled:
+            request.body?.cloudSyncEnabled === true,
+
+          clientRefreshHours:
+            hrs,
+
+          updatedAt:
+            FieldValue.serverTimestamp(),
+
+          updatedByUid:
+            admin.uid,
+        };
+
+        // Payment config contains only safe operational values:
+        // prices, currencies, enabled flags, provider routing,
+        // and public Razorpay/Dodo plan/product IDs.
+        //
+        // Gateway keys and webhook secrets MUST remain in
+        // Firebase / Google Secret Manager and are never accepted
+        // through this admin endpoint.
+        if (
+          request.body?.paymentConfig &&
+          typeof request.body.paymentConfig === "object"
+        ) {
+          update.paymentConfig =
+            normalizePaymentConfig(
+              request.body.paymentConfig);
+        }
+
         await db.collection("config")
           .doc("app")
           .set(
-            {
-              latestVersion:
-                safeText(
-                  request.body?.latestVersion,
-                  32),
-
-              minimumVersion:
-                safeText(
-                  request.body?.minimumVersion,
-                  32),
-
-              updateMessage:
-                safeText(
-                  request.body?.updateMessage,
-                  500),
-
-              updateUrl:
-                safeText(
-                  request.body?.updateUrl,
-                  500),
-
-              forceUpdate:
-                request.body?.forceUpdate === true,
-
-              paymentsEnabled:
-                request.body?.paymentsEnabled === true,
-              cloudSyncEnabled:
-                request.body?.cloudSyncEnabled === true,
-
-              clientRefreshHours:
-                hrs,
-
-              updatedAt:
-                FieldValue.serverTimestamp(),
-
-              updatedByUid:
-                admin.uid,
-            },
-            {merge: true});
+            update,
+            { merge: true });
 
         response.status(200).json({
           ok: true,
         });
       }
       catch (error: any) {
-        // Rule: centralized structured error mapping.
         sendAdminError(response, error);
       }
     });
