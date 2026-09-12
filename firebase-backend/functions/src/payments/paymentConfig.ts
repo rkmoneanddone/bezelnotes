@@ -3,7 +3,6 @@ export type PaymentPlanCode =
   | "yearly";
 
 export type PaymentProvider =
-  | "razorpay"
   | "dodo";
 
 export interface PaymentPlanConfig {
@@ -38,9 +37,6 @@ export interface PaymentConfig {
  * appsettings, environment files, or the WPF executable.
  */
 export const PAYMENT_SECRET_NAMES = {
-  razorpayKeyId: "RAZORPAY_KEY_ID",
-  razorpayKeySecret: "RAZORPAY_KEY_SECRET",
-  razorpayWebhookSecret: "RAZORPAY_WEBHOOK_SECRET",
   dodoApiKey: "DODO_PAYMENTS_API_KEY",
   dodoWebhookSecret: "DODO_PAYMENTS_WEBHOOK_SECRET",
 } as const;
@@ -49,49 +45,49 @@ export const PAYMENT_SECRET_NAMES = {
  * Safe defaults only.
  *
  * Prices are stored in minor units:
- * INR 299.00 => 29900 paise
- * INR 499.00 => 49900 paise
- * USD 3.00   => 300 cents
- * USD 5.00   => 500 cents
+ * 6-month recurring subscription => USD 5.00
+ * Yearly recurring subscription  => USD 9.00
+ * All markets use Dodo Payments
+ * Test product IDs are placeholders until Dodo products are created
  *
  * providerProductId is intentionally blank until products/plans
- * are created in Razorpay / Dodo and their safe IDs are saved in
+ * are created in Dodo and their safe IDs are saved in
  * Firestore config.
  */
 export const DEFAULT_PAYMENT_CONFIG: PaymentConfig = {
   enabled: false,
-  indiaProvider: "razorpay",
+  indiaProvider: "dodo",
   internationalProvider: "dodo",
   sixMonth: {
     india: {
       enabled: true,
-      amountMinor: 29900,
-      currency: "INR",
-      provider: "razorpay",
-      providerProductId: "",
-    },
-    international: {
-      enabled: true,
-      amountMinor: 300,
+      amountMinor: 500,
       currency: "USD",
       provider: "dodo",
-      providerProductId: "",
-    },
-  },
-  yearly: {
-    india: {
-      enabled: true,
-      amountMinor: 49900,
-      currency: "INR",
-      provider: "razorpay",
-      providerProductId: "",
+      providerProductId: "dodo_test_6_month_product",
     },
     international: {
       enabled: true,
       amountMinor: 500,
       currency: "USD",
       provider: "dodo",
-      providerProductId: "",
+      providerProductId: "dodo_test_6_month_product",
+    },
+  },
+  yearly: {
+    india: {
+      enabled: true,
+      amountMinor: 900,
+      currency: "USD",
+      provider: "dodo",
+      providerProductId: "dodo_test_yearly_product",
+    },
+    international: {
+      enabled: true,
+      amountMinor: 900,
+      currency: "USD",
+      provider: "dodo",
+      providerProductId: "dodo_test_yearly_product",
     },
   },
 };
@@ -128,8 +124,7 @@ function toProvider(
   value: unknown,
   fallback: PaymentProvider,
 ): PaymentProvider {
-  return value === "razorpay" ||
-    value === "dodo"
+  return value === "dodo"
     ? value
     : fallback;
 }
@@ -176,7 +171,7 @@ function normalizePlan(
  * - currencies
  * - provider routing
  * - enabled flags
- * - Razorpay plan IDs
+ * - Dodo product IDs
  * - Dodo product IDs
  *
  * Firestore MUST NOT contain gateway secrets.

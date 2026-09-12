@@ -3,7 +3,7 @@ namespace StickyNotes.Core.Models;
 public sealed class BackendPaymentConfig
 {
     public bool Enabled { get; init; }
-    public string IndiaProvider { get; init; } = "razorpay";
+    public string IndiaProvider { get; init; } = "dodo";
     public string InternationalProvider { get; init; } = "dodo";
     public BackendPaymentPlanGroup SixMonth { get; init; } = new();
     public BackendPaymentPlanGroup Yearly { get; init; } = new();
