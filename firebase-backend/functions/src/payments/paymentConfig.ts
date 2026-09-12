@@ -13,8 +13,16 @@ export interface PaymentPlanConfig {
   providerProductId: string;
 }
 
+export type DodoEnvironment =
+  | "test"
+  | "live";
+
 export interface PaymentConfig {
   enabled: boolean;
+  environment: DodoEnvironment;
+  checkoutReturnUrl: string;
+  checkoutCancelUrl: string;
+  customerPortalUrl: string;
   indiaProvider: PaymentProvider;
   internationalProvider: PaymentProvider;
   sixMonth: {
@@ -56,6 +64,13 @@ export const PAYMENT_SECRET_NAMES = {
  */
 export const DEFAULT_PAYMENT_CONFIG: PaymentConfig = {
   enabled: false,
+  environment: "test",
+  checkoutReturnUrl:
+    "https://bezelstickynotes.web.app/payment/return",
+  checkoutCancelUrl:
+    "https://bezelstickynotes.web.app/payment/cancel",
+  customerPortalUrl:
+    "https://bezelstickynotes.web.app/account/billing",
   indiaProvider: "dodo",
   internationalProvider: "dodo",
   sixMonth: {
@@ -127,6 +142,39 @@ function toProvider(
   return value === "dodo"
     ? value
     : fallback;
+}
+
+function toEnvironment(
+  value: unknown,
+  fallback: DodoEnvironment,
+): DodoEnvironment {
+  return value === "live" ||
+    value === "test"
+    ? value
+    : fallback;
+}
+
+function toUrl(
+  value: unknown,
+  fallback: string,
+): string {
+  const text =
+    toStringValue(value, fallback);
+
+  if (!text) {
+    return fallback;
+  }
+
+  try {
+    const parsed = new URL(text);
+
+    return parsed.protocol === "https:"
+      ? parsed.toString()
+      : fallback;
+  }
+  catch {
+    return fallback;
+  }
 }
 
 function normalizePlan(
@@ -201,6 +249,22 @@ export function normalizePaymentConfig(
     enabled: toBoolean(
       source.enabled,
       DEFAULT_PAYMENT_CONFIG.enabled,
+    ),
+    environment: toEnvironment(
+      source.environment,
+      DEFAULT_PAYMENT_CONFIG.environment,
+    ),
+    checkoutReturnUrl: toUrl(
+      source.checkoutReturnUrl,
+      DEFAULT_PAYMENT_CONFIG.checkoutReturnUrl,
+    ),
+    checkoutCancelUrl: toUrl(
+      source.checkoutCancelUrl,
+      DEFAULT_PAYMENT_CONFIG.checkoutCancelUrl,
+    ),
+    customerPortalUrl: toUrl(
+      source.customerPortalUrl,
+      DEFAULT_PAYMENT_CONFIG.customerPortalUrl,
     ),
     indiaProvider: toProvider(
       source.indiaProvider,

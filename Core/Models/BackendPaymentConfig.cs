@@ -3,6 +3,10 @@ namespace StickyNotes.Core.Models;
 public sealed class BackendPaymentConfig
 {
     public bool Enabled { get; init; }
+    public string Environment { get; init; } = "test";
+    public string CheckoutReturnUrl { get; init; } = string.Empty;
+    public string CheckoutCancelUrl { get; init; } = string.Empty;
+    public string CustomerPortalUrl { get; init; } = string.Empty;
     public string IndiaProvider { get; init; } = "dodo";
     public string InternationalProvider { get; init; } = "dodo";
     public BackendPaymentPlanGroup SixMonth { get; init; } = new();
