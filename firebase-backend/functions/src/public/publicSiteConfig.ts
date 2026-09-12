@@ -12,13 +12,26 @@ export const publicSiteConfig = onRequest(
     memory: "128MiB",
   },
   async (_request, response) => {
-    response.set("Cache-Control", "public, max-age=300, s-maxage=300");
+    response.set(
+      "Cache-Control",
+      "public, max-age=300, s-maxage=300");
 
     try {
       const db = getFirestore();
-      const snapshot = await db.collection("config").doc("app").get();
-      const data = snapshot.exists ? snapshot.data() ?? {} : {};
-      const paymentConfig = normalizePaymentConfig(data.paymentConfig);
+
+      const snapshot =
+        await db.collection("config")
+          .doc("app")
+          .get();
+
+      const data =
+        snapshot.exists
+          ? snapshot.data() ?? {}
+          : {};
+
+      const paymentConfig =
+        normalizePaymentConfig(
+          data.paymentConfig);
 
       response.status(200).json({
         latestVersion:
@@ -26,19 +39,51 @@ export const publicSiteConfig = onRequest(
             ? data.latestVersion.slice(0, 40)
             : "",
         trialDays: 7,
-        sixMonth: {
-          enabled: paymentConfig.sixMonth.international.enabled,
-          amountMinor: paymentConfig.sixMonth.international.amountMinor,
-          currency: paymentConfig.sixMonth.international.currency,
+        india: {
+          sixMonth: {
+            enabled:
+              paymentConfig.sixMonth.india.enabled,
+            amountMinor:
+              paymentConfig.sixMonth.india.amountMinor,
+            currency:
+              paymentConfig.sixMonth.india.currency,
+          },
+          yearly: {
+            enabled:
+              paymentConfig.yearly.india.enabled,
+            amountMinor:
+              paymentConfig.yearly.india.amountMinor,
+            currency:
+              paymentConfig.yearly.india.currency,
+          },
         },
-        yearly: {
-          enabled: paymentConfig.yearly.international.enabled,
-          amountMinor: paymentConfig.yearly.international.amountMinor,
-          currency: paymentConfig.yearly.international.currency,
+        international: {
+          sixMonth: {
+            enabled:
+              paymentConfig.sixMonth.international.enabled,
+            amountMinor:
+              paymentConfig.sixMonth.international.amountMinor,
+            currency:
+              paymentConfig.sixMonth.international.currency,
+          },
+          yearly: {
+            enabled:
+              paymentConfig.yearly.international.enabled,
+            amountMinor:
+              paymentConfig.yearly.international.amountMinor,
+            currency:
+              paymentConfig.yearly.international.currency,
+          },
         },
       });
-    } catch (error) {
-      console.error("publicSiteConfig failed", error);
-      response.status(500).json({ error: "CONFIG_UNAVAILABLE" });
+    }
+    catch (error) {
+      console.error(
+        "publicSiteConfig failed",
+        error);
+
+      response.status(500).json({
+        error: "CONFIG_UNAVAILABLE",
+      });
     }
   });
