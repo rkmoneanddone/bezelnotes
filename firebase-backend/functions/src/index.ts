@@ -209,3 +209,5 @@ export const updateAdminAppConfigV2 =
     sendAdminError,
     safeText,
   });
+
+export { publicSiteConfig } from "./public/publicSiteConfig";
