@@ -7,6 +7,7 @@ import { createAdminReadHandlers } from "./admin/readModels";
 import { createLegacyAdminHandlers } from "./admin/legacyHandlers";
 import { createAdminAuthHandlers } from "./admin/auth";
 import { createBootstrapAccount } from "./account/bootstrapAccount";
+import { createPaymentCheckoutHandler } from "./payments/createCheckout";
 import { verifyBearer } from "./auth/bearerAuth";
 import { createGoogleOAuthExchange } from "./auth/googleOAuth";
 import { initializeApp } from "firebase-admin/app";
@@ -22,6 +23,11 @@ const db = getFirestore();
 
 export const bootstrapAccount =
   createBootstrapAccount(db, verifyBearer);
+
+export const createPaymentCheckout =
+  createPaymentCheckoutHandler(
+    db,
+    verifyBearer);
 
 // ============================================================
 // Google OAuth code exchange
