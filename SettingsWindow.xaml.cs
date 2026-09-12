@@ -171,16 +171,149 @@ public partial class SettingsWindow : Window
         await RestoreSavedAccountStateAsync();
     }
 
-    private void PremiumButton_Click(
+    private async void PremiumButton_Click(
         object sender,
         RoutedEventArgs e)
     {
-        MessageBox.Show(
-            this,
-            "Premium checkout is not connected yet. Your current trial remains active.",
-            "Bezel Sticky Notes Premium",
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
+        PremiumButton.IsEnabled = false;
+
+        try
+        {
+            PersistedSession? persisted =
+                _secureSessionService.Load();
+
+            if (persisted is null)
+            {
+                var accountWindow =
+                    new AccountWindow
+                    {
+                        Owner = this
+                    };
+
+                accountWindow.ShowDialog();
+
+                persisted =
+                    _secureSessionService.Load();
+
+                if (persisted is null)
+                {
+                    MessageBox.Show(
+                        this,
+                        "Sign in to your Bezel account before purchasing Premium.",
+                        "Bezel Sticky Notes Premium",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+
+                    return;
+                }
+            }
+
+            FirebaseClientConfig config =
+                new FirebaseClientConfigService().Load();
+
+            var auth =
+                new FirebaseAuthService(config);
+
+            AuthSession refreshed =
+                await auth.RefreshSessionAsync(
+                    persisted);
+
+            _secureSessionService.Save(
+                refreshed);
+
+            var backend =
+                new SecureBackendService(config);
+
+            BackendAccountState state =
+                await backend.GetBootstrapStateAsync(
+                    refreshed,
+                    forceRefresh: true);
+
+            new BackendBootstrapCacheService()
+                .Save(state);
+
+            var effective =
+                GetEffectiveAccountState(
+                    state);
+
+            ApplySignedInAccountState(
+                state.Email,
+                effective.State,
+                effective.DaysRemaining,
+                state.PlanCode);
+
+            if (!state.AppConfig.PaymentsEnabled ||
+                !state.PaymentConfig.Enabled)
+            {
+                MessageBox.Show(
+                    this,
+                    "Premium checkout is currently unavailable. Please try again later.",
+                    "Bezel Sticky Notes Premium",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+
+                return;
+            }
+
+            var premiumWindow =
+                new PremiumWindow(
+                    config,
+                    refreshed,
+                    state)
+                {
+                    Owner = this
+                };
+
+            premiumWindow.ShowDialog();
+
+            BackendAccountState after =
+                await backend.GetBootstrapStateAsync(
+                    refreshed,
+                    forceRefresh: true);
+
+            new BackendBootstrapCacheService()
+                .Save(after);
+
+            var effectiveAfter =
+                GetEffectiveAccountState(
+                    after);
+
+            ApplySignedInAccountState(
+                after.Email,
+                effectiveAfter.State,
+                effectiveAfter.DaysRemaining,
+                after.PlanCode);
+        }
+        catch (SavedSessionInvalidException)
+        {
+            _secureSessionService.Clear();
+            new NotificationCacheService().Clear();
+            new BackendBootstrapCacheService().Clear();
+            ShowLoggedOutState();
+
+            MessageBox.Show(
+                this,
+                "Your saved login has expired. Please sign in again.",
+                "Bezel Sticky Notes Premium",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                this,
+                "Unable to open Premium checkout." +
+                Environment.NewLine +
+                Environment.NewLine +
+                ex.Message,
+                "Bezel Sticky Notes Premium",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        finally
+        {
+            PremiumButton.IsEnabled = true;
+        }
     }
 
     private void AboutButton_Click(
@@ -664,19 +797,39 @@ private void ShowNotificationLoadingState()
                     "active",
                     StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(
-                        entitlementState,
-                        "grace",
-                        StringComparison.OrdinalIgnoreCase)
+                    entitlementState,
+                    "grace",
+                    StringComparison.OrdinalIgnoreCase)
                     => "Premium plan",
                 _ => "7-day free trial"
             };
-AccountActionButton.IsEnabled =
+
+        AccountActionButton.IsEnabled =
             true;
+
         AccountEmailText.Text =
             $"Signed in as {email}";
 
         AccountActionButton.Content =
             "Logout";
+
+        bool premium =
+            string.Equals(
+                entitlementState,
+                "active",
+                StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(
+                entitlementState,
+                "grace",
+                StringComparison.OrdinalIgnoreCase);
+
+        PremiumButton.Content =
+            premium
+                ? "Manage Premium"
+                : "Go Premium";
+
+        PremiumButton.IsEnabled =
+            true;
 
         string dayWord =
             trialDaysRemaining == 1
@@ -774,12 +927,22 @@ AccountActionButton.IsEnabled =
         AccountActionButton.Content =
             "Logout";
     }
-private void ShowLoggedOutState()
+    private void ShowLoggedOutState()
     {
-        PlanSummaryText.Text = "7-day free trial";
+        PremiumButton.Content =
+            "Go Premium";
+
+        PremiumButton.IsEnabled =
+            true;
+
+        PlanSummaryText.Text =
+            "7-day free trial";
+
         HideBackendNotifications();
+
         AccountActionButton.IsEnabled =
             true;
+
         AccountEmailText.Text =
             "Trial starts when your account is activated.";
 

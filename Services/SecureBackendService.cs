@@ -78,6 +78,36 @@ public sealed class SecureBackendService
             new { },
             session.IdToken);
     }
+    public async Task<PaymentCheckoutResponse> CreatePaymentCheckoutAsync(
+        AuthSession session,
+        string planCode,
+        string market)
+    {
+        if (planCode != "six_month" &&
+            planCode != "yearly")
+        {
+            throw new ArgumentException(
+                "Invalid Premium plan.",
+                nameof(planCode));
+        }
+
+        if (market != "india" &&
+            market != "international")
+        {
+            throw new ArgumentException(
+                "Invalid payment market.",
+                nameof(market));
+        }
+
+        return await PostAuthenticatedAsync<PaymentCheckoutResponse>(
+            "createPaymentCheckout",
+            new
+            {
+                planCode,
+                market
+            },
+            session.IdToken);
+    }
 private async Task<T> PostAuthenticatedAsync<T>(
         string endpoint,
         object body,
