@@ -1,14 +1,20 @@
 import { createHash } from "node:crypto";
-import { defineSecret } from "firebase-functions/params";
-import { onRequest } from "firebase-functions/v2/https";
 import {
   FieldValue,
   type Firestore,
 } from "firebase-admin/firestore";
+import {
+  defineSecret,
+} from "firebase-functions/params";
+import {
+  onRequest,
+} from "firebase-functions/v2/https";
 
 import {
   normalizePaymentConfig,
+  type PaymentMarket,
   type PaymentPlanCode,
+  type PaymentPlanConfig,
 } from "./paymentConfig";
 
 type VerifiedUser = {
@@ -20,27 +26,11 @@ type VerifiedUser = {
 type VerifyBearer =
   (request: any) => Promise<VerifiedUser>;
 
-type DodoCheckoutResponse = {
-  session_id?: string;
-  checkout_url?: string;
-};
-
-const dodoPaymentsApiKey =
+const DODO_PAYMENTS_API_KEY =
   defineSecret("DODO_PAYMENTS_API_KEY");
 
-function safeRequestId(value: unknown): string {
-  if (
-    typeof value !== "string" ||
-    !/^[A-Za-z0-9._:-]{16,128}$/.test(value)
-  ) {
-    throw new Error("INVALID_REQUEST_ID");
-  }
-
-  return value;
-}
-
-function safePlanCode(
-  value: unknown
+function requirePlanCode(
+  value: unknown,
 ): PaymentPlanCode {
   if (
     value === "six_month" ||
@@ -52,49 +42,89 @@ function safePlanCode(
   throw new Error("INVALID_PLAN");
 }
 
+function requireMarket(
+  value: unknown,
+): PaymentMarket {
+  if (
+    value === "india" ||
+    value === "international"
+  ) {
+    return value;
+  }
+
+  throw new Error("INVALID_MARKET");
+}
+
+function requireRequestId(
+  value: unknown,
+): string {
+  if (
+    typeof value !== "string" ||
+    !/^[A-Za-z0-9._:-]{16,128}$/.test(value)
+  ) {
+    throw new Error("INVALID_REQUEST_ID");
+  }
+
+  return value;
+}
+
+function getPlan(
+  planCode: PaymentPlanCode,
+  market: PaymentMarket,
+  paymentConfig:
+    ReturnType<typeof normalizePaymentConfig>,
+): PaymentPlanConfig {
+  const group =
+    planCode === "six_month"
+      ? paymentConfig.sixMonth
+      : paymentConfig.yearly;
+
+  return market === "india"
+    ? group.india
+    : group.international;
+}
+
+function isUsableProductId(
+  value: string,
+): boolean {
+  return /^pdt_[A-Za-z0-9]+$/.test(value);
+}
+
 function paymentDocumentId(
   uid: string,
-  requestId: string
+  requestId: string,
 ): string {
   return createHash("sha256")
-    .update(
-      `${uid}:${requestId}`,
-      "utf8")
+    .update(`${uid}:${requestId}`)
     .digest("hex");
 }
 
-function dodoCheckoutEndpoint(
-  environment: "test" | "live"
+function checkoutEndpoint(
+  environment: "test" | "live",
 ): string {
   return environment === "live"
     ? "https://live.dodopayments.com/checkouts"
     : "https://test.dodopayments.com/checkouts";
 }
 
-function isPlaceholderProductId(
-  value: string
-): boolean {
-  return (
-    !value ||
-    value.startsWith("dodo_test_")
-  );
-}
-
 export function createPaymentCheckoutHandler(
   db: Firestore,
-  verifyBearer: VerifyBearer
+  verifyBearer: VerifyBearer,
 ) {
   return onRequest(
     {
       region: "asia-south1",
-      invoker: "public",
       cors: false,
-      secrets: [dodoPaymentsApiKey],
+      invoker: "public",
+      secrets: [
+        DODO_PAYMENTS_API_KEY,
+      ],
       timeoutSeconds: 30,
-      memory: "256MiB",
     },
     async (request, response) => {
-      response.set("Cache-Control", "no-store");
+      response.set(
+        "Cache-Control",
+        "no-store");
 
       if (request.method !== "POST") {
         response.status(405).json({
@@ -108,11 +138,15 @@ export function createPaymentCheckoutHandler(
           await verifyBearer(request);
 
         const planCode =
-          safePlanCode(
+          requirePlanCode(
             request.body?.planCode);
 
+        const market =
+          requireMarket(
+            request.body?.market);
+
         const requestId =
-          safeRequestId(
+          requireRequestId(
             request.body?.requestId);
 
         const appSnapshot =
@@ -129,42 +163,33 @@ export function createPaymentCheckoutHandler(
           normalizePaymentConfig(
             appData.paymentConfig);
 
+        /*
+         * paymentConfig.enabled is the payment-system switch.
+         * appConfig.paymentsEnabled remains a desktop/UI switch.
+         * Either explicit false disables checkout.
+         */
         if (
-          appData.paymentsEnabled !== true ||
-          paymentConfig.enabled !== true
+          paymentConfig.enabled !== true ||
+          appData.paymentsEnabled === false
         ) {
-          throw new Error("PAYMENTS_DISABLED");
+          throw new Error(
+            "PAYMENTS_DISABLED");
         }
 
-        // Bezel uses one global Dodo price/product pair for all markets.
-        // The international branch is the canonical source so the client
-        // cannot influence provider or price by claiming a country.
         const plan =
-          planCode === "six_month"
-            ? paymentConfig.sixMonth.international
-            : paymentConfig.yearly.international;
+          getPlan(
+            planCode,
+            market,
+            paymentConfig);
 
         if (
           plan.enabled !== true ||
-          plan.provider !== "dodo"
-        ) {
-          throw new Error("PLAN_DISABLED");
-        }
-
-        if (
-          plan.currency !== "USD" ||
-          !Number.isInteger(plan.amountMinor) ||
-          plan.amountMinor <= 0
-        ) {
-          throw new Error("INVALID_PAYMENT_CONFIG");
-        }
-
-        if (
-          isPlaceholderProductId(
+          plan.provider !== "dodo" ||
+          !isUsableProductId(
             plan.providerProductId)
         ) {
           throw new Error(
-            "PAYMENT_PRODUCT_NOT_CONFIGURED");
+            "PLAN_NOT_AVAILABLE");
         }
 
         const paymentId =
@@ -183,82 +208,70 @@ export function createPaymentCheckoutHandler(
           const data =
             existing.data() ?? {};
 
-          const existingUrl =
+          const checkoutUrl =
             typeof data.checkoutUrl === "string"
               ? data.checkoutUrl
               : "";
 
-          const existingSessionId =
-            typeof data.checkoutSessionId === "string"
-              ? data.checkoutSessionId
-              : "";
-
-          if (
-            existingUrl &&
-            existingSessionId
-          ) {
+          if (checkoutUrl) {
             response.status(200).json({
               paymentId,
-              checkoutUrl: existingUrl,
-              checkoutSessionId:
-                existingSessionId,
-              duplicateRetry: true,
+              checkoutUrl,
+              sessionId:
+                typeof data.checkoutSessionId === "string"
+                  ? data.checkoutSessionId
+                  : "",
+              reused: true,
             });
             return;
           }
 
-          throw new Error(
-            "CHECKOUT_ALREADY_IN_PROGRESS");
+          if (data.status === "creating") {
+            response.status(409).json({
+              error: "CHECKOUT_CREATING",
+            });
+            return;
+          }
         }
 
-        // Reserve this checkout request before calling Dodo.
-        // A repeated requestId cannot create a second payment document.
-        await paymentRef.create({
-          uid: user.uid,
-          email: user.email,
-          planCode,
-          provider: "dodo",
-          environment:
-            paymentConfig.environment,
-          providerProductId:
-            plan.providerProductId,
-          amountCents:
-            plan.amountMinor,
-          currency:
-            plan.currency,
-          status: "creating",
-          requestId,
-          createdAt:
-            FieldValue.serverTimestamp(),
-          updatedAt:
-            FieldValue.serverTimestamp(),
-        });
+        await paymentRef.set(
+          {
+            uid: user.uid,
+            email: user.email,
+            requestId,
+            planCode,
+            market,
+            provider: "dodo",
+            environment:
+              paymentConfig.environment,
+            providerProductId:
+              plan.providerProductId,
+            amountMinor:
+              plan.amountMinor,
+            amountCents:
+              plan.amountMinor,
+            currency:
+              plan.currency,
+            status: "creating",
+            createdAt:
+              FieldValue.serverTimestamp(),
+            updatedAt:
+              FieldValue.serverTimestamp(),
+          },
+          { merge: true });
 
         const apiKey =
-          dodoPaymentsApiKey.value();
+          DODO_PAYMENTS_API_KEY.value();
 
         if (!apiKey) {
-          await paymentRef.set(
-            {
-              status: "checkout_failed",
-              failureReason:
-                "DODO_API_KEY_NOT_CONFIGURED",
-              updatedAt:
-                FieldValue.serverTimestamp(),
-            },
-            { merge: true });
-
           throw new Error(
-            "PAYMENT_PROVIDER_NOT_CONFIGURED");
+            "DODO_API_KEY_NOT_CONFIGURED");
         }
-
-        const endpoint =
-          dodoCheckoutEndpoint(
-            paymentConfig.environment);
 
         const dodoResponse =
           await fetch(
-            endpoint,
+            checkoutEndpoint(
+              paymentConfig.environment),
             {
               method: "POST",
               headers: {
@@ -285,66 +298,86 @@ export function createPaymentCheckoutHandler(
                     user.uid,
                   bezel_plan_code:
                     planCode,
+                  bezel_market:
+                    market,
+                  bezel_request_id:
+                    requestId,
                 },
                 return_url:
                   paymentConfig.checkoutReturnUrl,
               }),
             });
 
-        let dodoJson:
-          DodoCheckoutResponse & {
-            message?: unknown;
-            error?: unknown;
-          } = {};
+        const rawBody =
+          await dodoResponse.text();
 
-        try {
-          dodoJson =
-            await dodoResponse.json() as
-              DodoCheckoutResponse & {
-                message?: unknown;
-                error?: unknown;
-              };
-        }
-        catch {
-          dodoJson = {};
+        let dodoData:
+          Record<string, unknown> = {};
+
+        if (rawBody) {
+          try {
+            dodoData =
+              JSON.parse(rawBody) as
+                Record<string, unknown>;
+          }
+          catch {
+            dodoData = {};
+          }
         }
 
-        if (
-          !dodoResponse.ok ||
-          typeof dodoJson.checkout_url !== "string" ||
-          typeof dodoJson.session_id !== "string"
-        ) {
-          console.error(
-            "Dodo checkout creation failed",
-            {
-              status: dodoResponse.status,
-              paymentId,
-              planCode,
-              environment:
-                paymentConfig.environment,
-            });
+        if (!dodoResponse.ok) {
+          const reason =
+            typeof dodoData.message === "string"
+              ? dodoData.message.substring(0, 300)
+              : `DODO_HTTP_${dodoResponse.status}`;
 
           await paymentRef.set(
             {
-              status: "checkout_failed",
-              failureReason:
-                `DODO_HTTP_${dodoResponse.status}`,
+              status: "failed",
+              failureReason: reason,
               updatedAt:
                 FieldValue.serverTimestamp(),
             },
             { merge: true });
 
           throw new Error(
-            "CHECKOUT_PROVIDER_FAILED");
+            "DODO_CHECKOUT_FAILED");
+        }
+
+        const checkoutUrl =
+          typeof dodoData.checkout_url === "string"
+            ? dodoData.checkout_url
+            : "";
+
+        const sessionId =
+          typeof dodoData.session_id === "string"
+            ? dodoData.session_id
+            : "";
+
+        if (
+          !checkoutUrl ||
+          !sessionId
+        ) {
+          await paymentRef.set(
+            {
+              status: "failed",
+              failureReason:
+                "INVALID_DODO_CHECKOUT_RESPONSE",
+              updatedAt:
+                FieldValue.serverTimestamp(),
+            },
+            { merge: true });
+
+          throw new Error(
+            "INVALID_DODO_CHECKOUT_RESPONSE");
         }
 
         await paymentRef.set(
           {
             status: "pending",
+            checkoutUrl,
             checkoutSessionId:
-              dodoJson.session_id,
-            checkoutUrl:
-              dodoJson.checkout_url,
+              sessionId,
             updatedAt:
               FieldValue.serverTimestamp(),
           },
@@ -352,11 +385,9 @@ export function createPaymentCheckoutHandler(
 
         response.status(200).json({
           paymentId,
-          checkoutUrl:
-            dodoJson.checkout_url,
-          checkoutSessionId:
-            dodoJson.session_id,
-          duplicateRetry: false,
+          checkoutUrl,
+          sessionId,
+          reused: false,
         });
       }
       catch (error: any) {
@@ -364,68 +395,28 @@ export function createPaymentCheckoutHandler(
           error?.message ??
           "INTERNAL_ERROR";
 
-        if (code === "UNAUTHENTICATED") {
-          response.status(401).json({
-            error: code,
-          });
-          return;
-        }
-
-        if (
-          code === "INVALID_REQUEST_ID" ||
-          code === "INVALID_PLAN"
-        ) {
-          response.status(400).json({
-            error: code,
-          });
-          return;
-        }
-
-        if (
-          code === "PAYMENTS_DISABLED" ||
-          code === "PLAN_DISABLED"
-        ) {
-          response.status(403).json({
-            error: code,
-          });
-          return;
-        }
-
-        if (
-          code === "PAYMENT_PRODUCT_NOT_CONFIGURED" ||
-          code === "PAYMENT_PROVIDER_NOT_CONFIGURED"
-        ) {
-          response.status(503).json({
-            error: code,
-          });
-          return;
-        }
-
-        if (
-          code === "CHECKOUT_ALREADY_IN_PROGRESS"
-        ) {
-          response.status(409).json({
-            error: code,
-          });
-          return;
-        }
-
-        if (
-          code === "INVALID_PAYMENT_CONFIG" ||
-          code === "CHECKOUT_PROVIDER_FAILED"
-        ) {
-          response.status(502).json({
-            error: code,
-          });
-          return;
-        }
+        const status =
+          code === "UNAUTHENTICATED"
+            ? 401
+            : code === "INVALID_PLAN" ||
+              code === "INVALID_MARKET" ||
+              code === "INVALID_REQUEST_ID"
+              ? 400
+              : code === "PAYMENTS_DISABLED" ||
+                code === "PLAN_NOT_AVAILABLE"
+                ? 409
+                : 500;
 
         console.error(
           "createPaymentCheckout failed",
+          code,
           error);
 
-        response.status(500).json({
-          error: "INTERNAL_ERROR",
+        response.status(status).json({
+          error:
+            status === 500
+              ? "CHECKOUT_FAILED"
+              : code,
         });
       }
     });

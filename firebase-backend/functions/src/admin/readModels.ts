@@ -1,6 +1,7 @@
 import { onRequest } from "firebase-functions/v2/https";
 import { getAuth } from "firebase-admin/auth";
 import type { Firestore } from "firebase-admin/firestore";
+import { normalizePaymentConfig } from "../payments/paymentConfig";
 
 type RequireAdmin =
   (request: any) => Promise<any>;
@@ -49,12 +50,12 @@ export function createAdminReadHandlers(options: {
     if (request.method !== "GET") { response.status(405).json({error:"METHOD_NOT_ALLOWED"}); return; }
     try {
       await requireAdmin(request);
-      const [users, installs, trials, expired, monthly, yearly, payOk, payFail, pricingDoc, appDoc] = await Promise.all([
+      const [users, installs, trials, expired, sixMonth, yearly, payOk, payFail, pricingDoc, appDoc] = await Promise.all([
         db.collection("users").count().get(),
         db.collection("installations").count().get(),
         countWhere("entitlements","entitlementState","trial"),
         countWhere("entitlements","entitlementState","expired"),
-        countWhere("entitlements","planCode","monthly"),
+        countWhere("entitlements","planCode","six_month"),
         countWhere("entitlements","planCode","yearly"),
         countWhere("payments","status","confirmed"),
         countWhere("payments","status","failed"),
@@ -62,9 +63,9 @@ export function createAdminReadHandlers(options: {
         db.collection("config").doc("app").get(),
       ]);
       response.status(200).json({
-        counts:{users:users.data().count,installations:installs.data().count,trials,notSubscribed:expired,monthly,yearly,paymentsConfirmed:payOk,paymentsFailed:payFail},
+        counts:{users:users.data().count,installations:installs.data().count,trials,notSubscribed:expired,sixMonth,yearly,paymentsConfirmed:payOk,paymentsFailed:payFail},
         pricing:pricingDoc.exists?pricingDoc.data():{trialDays:7,monthlyPriceCents:149,yearlyPriceCents:599,currency:"USD",monthlyPriceProtectionMonths:12},
-        appConfig:appDoc.exists?appDoc.data():{latestVersion:"",minimumVersion:"",cloudSyncEnabled:false,clientRefreshHours:48}
+        appConfig:appDoc.exists?{...appDoc.data(),paymentConfig:normalizePaymentConfig(appDoc.data()?.paymentConfig)}:{latestVersion:"",minimumVersion:"",cloudSyncEnabled:false,clientRefreshHours:48,paymentConfig:normalizePaymentConfig(undefined)}
       });
     } catch(error:any){ sendAdminError(response,error); }
   });
@@ -82,7 +83,7 @@ export function createAdminReadHandlers(options: {
       let query:FirebaseFirestore.Query=db.collection("entitlements");
       if(category==="trial") query=query.where("entitlementState","==","trial");
       else if(category==="not_subscribed") query=query.where("entitlementState","==","expired");
-      else if(category==="monthly") query=query.where("planCode","==","monthly");
+      else if(category==="six_month") query=query.where("planCode","==","six_month");
       else if(category==="yearly") query=query.where("planCode","==","yearly");
       else throw new Error("INVALID_REQUEST");
       query=query.orderBy("__name__").limit(limit+1);

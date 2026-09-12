@@ -2,6 +2,10 @@ export type PaymentPlanCode =
   | "six_month"
   | "yearly";
 
+export type PaymentMarket =
+  | "india"
+  | "international";
+
 export type PaymentProvider =
   | "dodo";
 
@@ -35,35 +39,27 @@ export interface PaymentConfig {
   };
 }
 
-/**
- * Secret Manager names only.
- *
- * IMPORTANT:
- * These are secret IDENTIFIERS, never secret values.
- * The values must be stored in Firebase / Google Secret Manager
- * and must never be committed to Git, Firestore, desktop config,
- * appsettings, environment files, or the WPF executable.
- */
 export const PAYMENT_SECRET_NAMES = {
   dodoApiKey: "DODO_PAYMENTS_API_KEY",
   dodoWebhookSecret: "DODO_PAYMENTS_WEBHOOK_SECRET",
 } as const;
 
-/**
- * Safe defaults only.
+/*
+ * Safe operational defaults.
  *
- * Prices are stored in minor units:
- * 6-month recurring subscription => USD 5.00
- * Yearly recurring subscription  => USD 9.00
- * All markets use Dodo Payments
- * Test product IDs are placeholders until Dodo products are created
+ * All values remain configurable through config/app.paymentConfig.
+ * Secret values never belong in Firestore.
  *
- * providerProductId is intentionally blank until products/plans
- * are created in Dodo and their safe IDs are saved in
- * Firestore config.
+ * India:
+ *   INR 399 every 6 months
+ *   INR 699 every 12 months
+ *
+ * International:
+ *   USD 6 every 6 months
+ *   USD 9 every 12 months
  */
 export const DEFAULT_PAYMENT_CONFIG: PaymentConfig = {
-  enabled: false,
+  enabled: true,
   environment: "test",
   checkoutReturnUrl:
     "https://bezelstickynotes.web.app/payment/return",
@@ -76,33 +72,37 @@ export const DEFAULT_PAYMENT_CONFIG: PaymentConfig = {
   sixMonth: {
     india: {
       enabled: true,
-      amountMinor: 500,
-      currency: "USD",
+      amountMinor: 39900,
+      currency: "INR",
       provider: "dodo",
-      providerProductId: "dodo_test_6_month_product",
+      providerProductId:
+        "pdt_0NnQGA8yriwqSjQkA4n7W",
     },
     international: {
       enabled: true,
-      amountMinor: 500,
+      amountMinor: 600,
       currency: "USD",
       provider: "dodo",
-      providerProductId: "dodo_test_6_month_product",
+      providerProductId:
+        "pdt_0NnQH3R1lePy4qNQj0Gmk",
     },
   },
   yearly: {
     india: {
       enabled: true,
-      amountMinor: 900,
-      currency: "USD",
+      amountMinor: 69900,
+      currency: "INR",
       provider: "dodo",
-      providerProductId: "dodo_test_yearly_product",
+      providerProductId:
+        "pdt_0NnQGaBTFSnbl1765WTO7",
     },
     international: {
       enabled: true,
       amountMinor: 900,
       currency: "USD",
       provider: "dodo",
-      providerProductId: "dodo_test_yearly_product",
+      providerProductId:
+        "pdt_0NnQHDrQkSbZYxDBVi6nt",
     },
   },
 };
@@ -177,6 +177,13 @@ function toUrl(
   }
 }
 
+function isRealDodoProductId(
+  value: unknown,
+): value is string {
+  return typeof value === "string" &&
+    /^pdt_[A-Za-z0-9]+$/.test(value.trim());
+}
+
 function normalizePlan(
   raw: unknown,
   fallback: PaymentPlanConfig,
@@ -186,6 +193,22 @@ function normalizePlan(
     typeof raw === "object"
       ? raw as Record<string, unknown>
       : {};
+
+  /*
+   * Old Bezel builds stored placeholder product IDs.
+   * If the product ID is still a placeholder, migrate the
+   * complete plan to the current safe default. Once an admin
+   * saves a real pdt_ ID, every field is fully configurable.
+   */
+  if (!isRealDodoProductId(
+    source.providerProductId)) {
+    return {
+      ...fallback,
+      enabled: toBoolean(
+        source.enabled,
+        fallback.enabled),
+    };
+  }
 
   return {
     enabled: toBoolean(
@@ -204,26 +227,13 @@ function normalizePlan(
       source.provider,
       fallback.provider,
     ),
-    providerProductId: toStringValue(
-      source.providerProductId,
-      fallback.providerProductId,
-    ),
+    providerProductId:
+      toStringValue(
+        source.providerProductId,
+        fallback.providerProductId),
   };
 }
 
-/**
- * Normalizes Firestore config/payments safely.
- *
- * Firestore may contain:
- * - prices
- * - currencies
- * - provider routing
- * - enabled flags
- * - Dodo product IDs
- * - Dodo product IDs
- *
- * Firestore MUST NOT contain gateway secrets.
- */
 export function normalizePaymentConfig(
   raw: unknown,
 ): PaymentConfig {

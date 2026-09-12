@@ -8,6 +8,7 @@ import { createLegacyAdminHandlers } from "./admin/legacyHandlers";
 import { createAdminAuthHandlers } from "./admin/auth";
 import { createBootstrapAccount } from "./account/bootstrapAccount";
 import { createPaymentCheckoutHandler } from "./payments/createCheckout";
+import { createDodoWebhook } from "./payments/dodoWebhook";
 import { verifyBearer } from "./auth/bearerAuth";
 import { createGoogleOAuthExchange } from "./auth/googleOAuth";
 import { initializeApp } from "firebase-admin/app";
@@ -28,6 +29,8 @@ export const createPaymentCheckout =
   createPaymentCheckoutHandler(
     db,
     verifyBearer);
+export const dodoWebhook =
+  createDodoWebhook(db);
 
 // ============================================================
 // Google OAuth code exchange
