@@ -50,13 +50,14 @@ export const PAYMENT_SECRET_NAMES = {
  * All values remain configurable through config/app.paymentConfig.
  * Secret values never belong in Firestore.
  *
+ * Approved pricing:
  * India:
  *   INR 399 every 6 months
- *   INR 699 every 12 months
+ *   INR 599 every 12 months
  *
  * International:
- *   USD 6 every 6 months
- *   USD 9 every 12 months
+ *   USD 7 every 6 months
+ *   USD 11 every 12 months
  */
 export const DEFAULT_PAYMENT_CONFIG: PaymentConfig = {
   enabled: true,
@@ -80,7 +81,7 @@ export const DEFAULT_PAYMENT_CONFIG: PaymentConfig = {
     },
     international: {
       enabled: true,
-      amountMinor: 600,
+      amountMinor: 700,
       currency: "USD",
       provider: "dodo",
       providerProductId:
@@ -90,7 +91,7 @@ export const DEFAULT_PAYMENT_CONFIG: PaymentConfig = {
   yearly: {
     india: {
       enabled: true,
-      amountMinor: 69900,
+      amountMinor: 59900,
       currency: "INR",
       provider: "dodo",
       providerProductId:
@@ -98,7 +99,7 @@ export const DEFAULT_PAYMENT_CONFIG: PaymentConfig = {
     },
     international: {
       enabled: true,
-      amountMinor: 900,
+      amountMinor: 1100,
       currency: "USD",
       provider: "dodo",
       providerProductId:
